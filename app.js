@@ -26,3 +26,12 @@ async function exportData(){if(!admin)return;try{const rows=await api('/rest/v1/
 if (new URLSearchParams(window.location.search).has('admin')) {
     show('admin');
 }
+
+function abrirAccesoPrivado() {
+    if (window.location.hash === "#admin") {
+        show("admin");
+    }
+}
+
+window.addEventListener("hashchange", abrirAccesoPrivado);
+window.addEventListener("load", abrirAccesoPrivado);
