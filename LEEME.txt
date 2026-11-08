@@ -1,0 +1,14 @@
+LUZ PARA TU ALMA — PROTOTIPO PWA FUNCIONAL
+
+1. Descomprime la carpeta.
+2. Para probar localmente, abre una terminal en la carpeta y ejecuta: python -m http.server 8000
+3. Visita http://localhost:8000 desde tu computadora.
+4. Para instalar en teléfonos de otras personas, hay que subir todos los archivos a un hosting HTTPS. El navegador compatible podrá ofrecer "Instalar aplicación".
+
+IMPORTANTE:
+- No es todavía un servicio multiusuario ni una plataforma pública lista para producción.
+- El editor no tiene autenticación; NO publicar la versión actual como administrador real.
+- Los cambios se guardan en el navegador de cada dispositivo, NO se publican a otros visitantes.
+- Usa Exportar copia JSON para proteger tus estudios.
+- Para publicar contenido desde tu computadora a todos los usuarios hace falta implementar un servidor, una base de datos, autenticación y permisos.
+- No incluye IA ni textos bíblicos de terceros que requieran licencia.
