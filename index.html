@@ -1,1 +1,246 @@
-<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#173a32"><link rel="manifest" href="manifest.webmanifest"><link rel="icon" href="icon.svg" type="image/svg+xml"><title>Luz para tu Alma</title><style>:root{font-family:system-ui,Arial;color:#173a32;background:#f7f8f5}*{box-sizing:border-box}body{margin:0}header{background:#173a32;color:#fff;padding:28px 16px;text-align:center}header h1{margin:8px 0;color:#f2d18b}nav{display:flex;gap:8px;overflow:auto;padding:12px;max-width:950px;margin:auto}button,.btn{border:0;border-radius:9px;padding:11px 14px;background:#176d58;color:white;cursor:pointer;font-weight:600}nav button{white-space:nowrap}main{max-width:950px;margin:auto;padding:8px 16px 60px}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:14px}.card{background:white;border:1px solid #d9e4dc;border-radius:14px;padding:18px;box-shadow:0 2px 8px #00000008}h2{margin:18px 0}small,.muted{color:#62766c}input,textarea,select{width:100%;border:1px solid #b7c9be;border-radius:8px;padding:11px;font:inherit;margin:6px 0 12px}textarea{min-height:150px}label{font-weight:600}article{white-space:pre-wrap;line-height:1.7}.actions{display:flex;gap:8px;flex-wrap:wrap}.secondary{background:#e5ede7;color:#173a32}.danger{background:#a33838}.hide{display:none}footer{text-align:center;color:#60746a;padding:24px}.notice{background:#fff7df;border-left:4px solid #c99e41;padding:12px;border-radius:6px;margin:12px 0}@media(min-width:700px){header{padding:40px}}</style></head><body><header><div style="font-size:36px">✦ 📖 ✦</div><h1>LUZ PARA TU ALMA</h1><p>La Palabra de Dios, esperanza para cada día</p></header><nav><button onclick="show('inicio')">Inicio</button><button onclick="show('biblioteca')">Biblioteca</button><button onclick="show('oracion')">Oración</button><button onclick="show('admin')">Administración</button></nav><main><section id="inicio"><h2>Bienvenido</h2><p>Explora sermones, meditaciones, exégesis y estudios bíblicos. Los contenidos publicados están disponibles sin registrarse.</p><div class="grid"><div class="card"><h3>📖 Sermones</h3><p>Mensajes para fortalecer la fe.</p><button onclick="filterType('Sermón')">Explorar</button></div><div class="card"><h3>🌅 Meditaciones</h3><p>Reflexiones para cada día.</p><button onclick="filterType('Meditación')">Explorar</button></div><div class="card"><h3>🔎 Exégesis</h3><p>Contexto y análisis bíblico.</p><button onclick="filterType('Exégesis')">Explorar</button></div><div class="card"><h3>🎓 Estudios</h3><p>Profundiza en las Escrituras.</p><button onclick="filterType('Estudio')">Explorar</button></div></div><div class="notice">Versión conectada a Supabase. Solo las publicaciones con estado publicado serán visibles para visitantes.</div></section><section id="biblioteca" class="hide"><h2>Biblioteca bíblica</h2><input id="search" placeholder="Buscar por título, referencia o texto" oninput="render()"><select id="typeFilter" onchange="render()"><option value="">Todas las categorías</option><option>Sermón</option><option>Meditación</option><option>Exégesis</option><option>Estudio</option></select><div id="cards" class="grid"></div><div id="reader" class="card hide" style="margin-top:16px"></div></section><section id="oracion" class="hide"><h2>Oramos por ti</h2><p>«Echando toda vuestra ansiedad sobre él, porque él tiene cuidado de vosotros». — 1 Pedro 5:7</p><div class="card"><p>En esta versión no recogemos ni transmitimos peticiones privadas. Esta función se habilitará cuando exista un servidor seguro y una política de privacidad.</p><p>Puedes dedicar este momento a la oración personal.</p></div></section><section id="admin" class="hide"><h2>Administración</h2><div class="notice" id="connectionMessage">Configuración pendiente.</div><div id="loginBox" class="card"><h3>Ingresar como administrador</h3><label>Correo electrónico</label><input id="email" type="email" autocomplete="username"><label>Contraseña</label><input id="password" type="password" autocomplete="current-password"><button onclick="login()">Iniciar sesión</button></div><div id="adminEditor" class="hide"><div class="actions"><button class="secondary" onclick="logout()">Cerrar sesión</button><button class="secondary" onclick="exportData()">Exportar copia JSON</button></div><label>Título</label><input id="title" placeholder="Título del estudio"><label>Referencia bíblica</label><input id="ref" placeholder="Mateo 24:12"><label>Categoría</label><select id="category"></select><label>Resumen</label><textarea id="summary" style="min-height:75px"></textarea><label>Contenido</label><textarea id="body" placeholder="Escribe o pega el contenido completo aquí"></textarea><label>Estado</label><select id="status"><option value="draft">Borrador (privado)</option><option value="published">Publicado (visible para todos)</option></select><div class="actions"><button onclick="save()">Guardar en Supabase</button><button class="secondary" onclick="resetForm()">Nuevo</button></div><div id="adminList"></div></div></section></main><footer>Luz para tu Alma · Proyecto en desarrollo</footer><script src="config.js"></script><script src="app.js"></script></body></html>
+<!doctype html>
+<html lang="es">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <meta name="theme-color" content="#173a32">
+    <link rel="manifest" href="manifest.webmanifest">
+    <link rel="icon" href="icon.svg" type="image/svg+xml">
+    <title>Luz para tu Alma</title>
+    <style>
+        :root {
+            font-family: system-ui, Arial;
+            color: #173a32;
+            background: #f7f8f5
+        }
+
+        * {
+            box-sizing: border-box
+        }
+
+        body {
+            margin: 0
+        }
+
+        header {
+            background: #173a32;
+            color: #fff;
+            padding: 28px 16px;
+            text-align: center
+        }
+
+        header h1 {
+            margin: 8px 0;
+            color: #f2d18b
+        }
+
+        nav {
+            display: flex;
+            gap: 8px;
+            overflow: auto;
+            padding: 12px;
+            max-width: 950px;
+            margin: auto
+        }
+
+        button,
+        .btn {
+            border: 0;
+            border-radius: 9px;
+            padding: 11px 14px;
+            background: #176d58;
+            color: white;
+            cursor: pointer;
+            font-weight: 600
+        }
+
+        nav button {
+            white-space: nowrap
+        }
+
+        main {
+            max-width: 950px;
+            margin: auto;
+            padding: 8px 16px 60px
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+            gap: 14px
+        }
+
+        .card {
+            background: white;
+            border: 1px solid #d9e4dc;
+            border-radius: 14px;
+            padding: 18px;
+            box-shadow: 0 2px 8px #00000008
+        }
+
+        h2 {
+            margin: 18px 0
+        }
+
+        small,
+        .muted {
+            color: #62766c
+        }
+
+        input,
+        textarea,
+        select {
+            width: 100%;
+            border: 1px solid #b7c9be;
+            border-radius: 8px;
+            padding: 11px;
+            font: inherit;
+            margin: 6px 0 12px
+        }
+
+        textarea {
+            min-height: 150px
+        }
+
+        label {
+            font-weight: 600
+        }
+
+        article {
+            white-space: pre-wrap;
+            line-height: 1.7
+        }
+
+        .actions {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap
+        }
+
+        .secondary {
+            background: #e5ede7;
+            color: #173a32
+        }
+
+        .danger {
+            background: #a33838
+        }
+
+        .hide {
+            display: none
+        }
+
+        footer {
+            text-align: center;
+            color: #60746a;
+            padding: 24px
+        }
+
+        .notice {
+            background: #fff7df;
+            border-left: 4px solid #c99e41;
+            padding: 12px;
+            border-radius: 6px;
+            margin: 12px 0
+        }
+
+        @media(min-width:700px) {
+            header {
+                padding: 40px
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <header>
+        <div style="font-size:36px">✦ 📖 ✦</div>
+        <h1>LUZ PARA TU ALMA</h1>
+        <p>La Palabra de Dios, esperanza para cada día</p>
+    </header>
+    <nav>
+    <button onclick="show('inicio')">Inicio</button>
+    <button onclick="show('biblioteca')">Biblioteca</button>
+    <button onclick="show('oracion')">Oración</button>
+</nav>
+    <main>
+        <section id="inicio">
+            <h2>Bienvenido</h2>
+            <p>Explora sermones, meditaciones, exégesis y estudios bíblicos. Los contenidos publicados están disponibles
+                sin registrarse.</p>
+            <div class="grid">
+                <div class="card">
+                    <h3>📖 Sermones</h3>
+                    <p>Mensajes para fortalecer la fe.</p><button onclick="filterType('Sermón')">Explorar</button>
+                </div>
+                <div class="card">
+                    <h3>🌅 Meditaciones</h3>
+                    <p>Reflexiones para cada día.</p><button onclick="filterType('Meditación')">Explorar</button>
+                </div>
+                <div class="card">
+                    <h3>🔎 Exégesis</h3>
+                    <p>Contexto y análisis bíblico.</p><button onclick="filterType('Exégesis')">Explorar</button>
+                </div>
+                <div class="card">
+                    <h3>🎓 Estudios</h3>
+                    <p>Profundiza en las Escrituras.</p><button onclick="filterType('Estudio')">Explorar</button>
+                </div>
+            </div>
+           
+        </section>
+        <section id="biblioteca" class="hide">
+            <h2>Biblioteca bíblica</h2><input id="search" placeholder="Buscar por título, referencia o texto"
+                oninput="render()"><select id="typeFilter" onchange="render()">
+                <option value="">Todas las categorías</option>
+                <option>Sermón</option>
+                <option>Meditación</option>
+                <option>Exégesis</option>
+                <option>Estudio</option>
+            </select>
+            <div id="cards" class="grid"></div>
+            <div id="reader" class="card hide" style="margin-top:16px"></div>
+        </section>
+        <section id="oracion" class="hide">
+            <h2>Oramos por ti</h2>
+            <p>«Echando toda vuestra ansiedad sobre él, porque él tiene cuidado de vosotros». — 1 Pedro 5:7</p>
+            <div class="card">
+                <p>En esta versión no recogemos ni transmitimos peticiones privadas. Esta función se habilitará cuando
+                    exista un servidor seguro y una política de privacidad.</p>
+                <p>Puedes dedicar este momento a la oración personal.</p>
+            </div>
+        </section>
+        <section id="admin" class="hide">
+            <h2>Administración</h2>
+            <div class="notice" id="connectionMessage">Configuración pendiente.</div>
+            <div id="loginBox" class="card">
+                <h3>Ingresar como administrador</h3><label>Correo electrónico</label><input id="email" type="email"
+                    autocomplete="username"><label>Contraseña</label><input id="password" type="password"
+                    autocomplete="current-password"><button onclick="login()">Iniciar sesión</button>
+            </div>
+            <div id="adminEditor" class="hide">
+                <div class="actions"><button class="secondary" onclick="logout()">Cerrar sesión</button><button
+                        class="secondary" onclick="exportData()">Exportar copia JSON</button></div>
+                <label>Título</label><input id="title" placeholder="Título del estudio"><label>Referencia
+                    bíblica</label><input id="ref" placeholder="Mateo 24:12"><label>Categoría</label><select
+                    id="category"></select><label>Resumen</label><textarea id="summary"
+                    style="min-height:75px"></textarea><label>Contenido</label><textarea id="body"
+                    placeholder="Escribe o pega el contenido completo aquí"></textarea><label>Estado</label><select
+                    id="status">
+                    <option value="draft">Borrador (privado)</option>
+                    <option value="published">Publicado (visible para todos)</option>
+                </select>
+                <div class="actions"><button onclick="save()">Guardar en Supabase</button><button class="secondary"
+                        onclick="resetForm()">Nuevo</button></div>
+                <div id="adminList"></div>
+            </div>
+        </section>
+    </main>
+   <footer>
+    Luz para tu Alma · Compartiendo esperanza a través de la Palabra de Dios
+</footer>
+    <script src="config.js"></script>
+    <script src="app.js"></script>
+</body>
+
+</html>
