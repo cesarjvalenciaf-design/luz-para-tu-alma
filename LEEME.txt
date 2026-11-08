@@ -1,14 +1,12 @@
-LUZ PARA TU ALMA — PROTOTIPO PWA FUNCIONAL
+LUZ PARA TU ALMA — SUPABASE V2 (PRUEBA, NO PUBLICAR TODAVÍA)
 
-1. Descomprime la carpeta.
-2. Para probar localmente, abre una terminal en la carpeta y ejecuta: python -m http.server 8000
-3. Visita http://localhost:8000 desde tu computadora.
-4. Para instalar en teléfonos de otras personas, hay que subir todos los archivos a un hosting HTTPS. El navegador compatible podrá ofrecer "Instalar aplicación".
-
-IMPORTANTE:
-- No es todavía un servicio multiusuario ni una plataforma pública lista para producción.
-- El editor no tiene autenticación; NO publicar la versión actual como administrador real.
-- Los cambios se guardan en el navegador de cada dispositivo, NO se publican a otros visitantes.
-- Usa Exportar copia JSON para proteger tus estudios.
-- Para publicar contenido desde tu computadora a todos los usuarios hace falta implementar un servidor, una base de datos, autenticación y permisos.
-- No incluye IA ni textos bíblicos de terceros que requieran licencia.
+1. Haz una copia de seguridad JSON desde la versión antigua ANTES de cambiar nada.
+2. Abre config.js con Bloc de notas. Sustituye PEGA_AQUI_TU_SB_PUBLISHABLE_KEY por la clave pública completa de Settings > API Keys. No pegues claves secretas.
+3. Revisa que la URL coincida con tu proyecto en Supabase > Data API. No uses /rest/v1/ en la URL base.
+4. Asegúrate de que en la tabla categories existen categorías con nombres como Sermón, Meditación, Exégesis, Estudio; si está vacía, créalas en Supabase con Table Editor.
+5. Para probar en PC, abre una terminal en esta carpeta y ejecuta: python -m http.server 8000. Luego abre http://localhost:8000. No uses file://.
+6. En Administración inicia sesión con la cuenta creada en Supabase Authentication, no con la cuenta del dashboard.
+7. Prueba crear un borrador, publicarlo, leerlo en ventana de incógnito y comprobar que incógnito NO puede modificarlo.
+8. No publiques el sitio sin verificar RLS en todas las tablas, las políticas de INSERT/UPDATE y la función is_admin().
+9. La importación automática del JSON local no está implementada. Guarda tu copia JSON original y migra el contenido manualmente mientras validas la integración.
+10. Esta versión NO incluye IA, notificaciones, pagos ni sistema de peticiones de oración; esas funciones requieren desarrollo posterior.
