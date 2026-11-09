@@ -6,6 +6,36 @@ const text=(tag,value)=>{const e=document.createElement(tag);e.textContent=value
 function message(m){$('connectionMessage').textContent=m}
 function headers(auth=false){return {'apikey':cfg.publishableKey,'Content-Type':'application/json',...(auth&&session?.access_token?{'Authorization':'Bearer '+session.access_token}:{})}}
 async function api(path,opts={}){const res=await fetch(cfg.url+path,{...opts,headers:{...headers(!!session),...(opts.headers||{})}});const body=await res.text();let data;try{data=body?JSON.parse(body):null}catch{data=body}if(!res.ok)throw Error((typeof data==='object'&&(data?.message||data?.error_description||data?.error))||'Error HTTP '+res.status);return data}
+async function apiPublica(path, opts = {}) {
+    const res = await fetch(cfg.url + path, {
+        ...opts,
+        headers: {
+            'apikey': cfg.publishableKey,
+            'Content-Type': 'application/json',
+            ...(opts.headers || {})
+        }
+    });
+
+    const body = await res.text();
+    let data;
+
+    try {
+        data = body ? JSON.parse(body) : null;
+    } catch {
+        data = body;
+    }
+
+    if (!res.ok) {
+        throw new Error(
+            data?.message ||
+            data?.error ||
+            'Error HTTP ' + res.status
+        );
+    }
+
+    return data;
+}
+
 function show(id){document.querySelectorAll('main>section').forEach(s=>s.classList.toggle('hide',s.id!==id));if(id==='biblioteca')render();if(id==='admin')renderAdmin()}
 function filterType(t){show('biblioteca');$('typeFilter').value=t;render()}
 function render(){const target=$('cards');target.replaceChildren();const q=$('search').value.toLocaleLowerCase(),type=$('typeFilter').value;const found=items.filter(x=>(!type||x.category===type)&&[x.title,x.ref,x.body].join(' ').toLocaleLowerCase().includes(q));for(const x of found){const c=text('div','');c.className='card';c.append(text('small',x.category+' · '+x.ref),text('h3',x.title));const b=text('button','Leer estudio');b.onclick=()=>read(x.id);c.append(b);target.append(c)}if(!found.length)target.append(text('p','No hay publicaciones que coincidan.'))}
@@ -35,3 +65,405 @@ function abrirAccesoPrivado() {
 
 window.addEventListener("hashchange", abrirAccesoPrivado);
 window.addEventListener("load", abrirAccesoPrivado);
+
+/* ==========================================
+   LUZ PARA TU ALMA - ORACIÓN Y TESTIMONIOS
+   ========================================== */
+
+let enviandoOracion = false;
+let enviandoTestimonio = false;
+
+async function enviarOracion() {
+    if (enviandoOracion) return;
+
+    const nombre = $('nombreOracion').value.trim();
+    const peticion = $('textoOracion').value.trim();
+    const publicar = $('publicarOracion').checked;
+    const mensaje = $('mensajeOracion');
+
+    if (peticion.length < 10) {
+        mensaje.textContent =
+            'Escribe una petición de al menos 10 caracteres.';
+        return;
+    }
+
+    if (peticion.length > 3000 || nombre.length > 100) {
+        mensaje.textContent = 'El texto es demasiado largo.';
+        return;
+    }
+
+    enviandoOracion = true;
+    mensaje.textContent = 'Enviando tu petición...';
+
+    try {
+        await apiPublica('/rest/v1/peticiones_oracion', {
+            method: 'POST',
+            headers: { Prefer: 'return=minimal' },
+            body: JSON.stringify({
+                nombre: nombre || null,
+                peticion: peticion,
+                correo: null,
+                autoriza_contacto: false,
+                solicita_publicacion: publicar,
+                estado: 'pendiente',
+                aprobada: false
+            })
+        });
+
+        $('nombreOracion').value = '';
+        $('textoOracion').value = '';
+        $('publicarOracion').checked = false;
+
+        mensaje.textContent =
+            'Tu petición fue recibida. Estaremos orando por ti.';
+    } catch (error) {
+        mensaje.textContent =
+            'No se pudo enviar la petición: ' + error.message;
+    } finally {
+        enviandoOracion = false;
+    }
+}
+
+async function enviarTestimonio() {
+    if (enviandoTestimonio) return;
+
+    const nombre = $('nombreTestimonio').value.trim();
+    const testimonio = $('textoTestimonio').value.trim();
+    const publicar = $('publicarTestimonio').checked;
+    const mensaje = $('mensajeTestimonio');
+
+    if (testimonio.length < 10) {
+        mensaje.textContent =
+            'Escribe un testimonio de al menos 10 caracteres.';
+        return;
+    }
+
+    if (testimonio.length > 3000 || nombre.length > 100) {
+        mensaje.textContent = 'El texto es demasiado largo.';
+        return;
+    }
+
+    enviandoTestimonio = true;
+    mensaje.textContent = 'Enviando tu testimonio...';
+
+    try {
+        await apiPublica('/rest/v1/testimonios_oracion', {
+            method: 'POST',
+            headers: { Prefer: 'return=minimal' },
+            body: JSON.stringify({
+                nombre: nombre || null,
+                testimonio: testimonio,
+                correo: null,
+                autoriza_contacto: false,
+                solicita_publicacion: publicar,
+                aprobado: false
+            })
+        });
+
+        $('nombreTestimonio').value = '';
+        $('textoTestimonio').value = '';
+        $('publicarTestimonio').checked = false;
+
+        mensaje.textContent =
+            'Tu testimonio fue recibido y está pendiente de revisión.';
+    } catch (error) {
+        mensaje.textContent =
+            'No se pudo enviar el testimonio: ' + error.message;
+    } finally {
+        enviandoTestimonio = false;
+    }
+}
+
+async function cargarOracionesPublicas() {
+    const contenedor = $('listaOraciones');
+    contenedor.replaceChildren(
+        text('p', 'Cargando peticiones...')
+    );
+
+    try {
+        const registros = await apiPublica(
+            '/rest/v1/oraciones_publicas' +
+            '?select=id,nombre,peticion,fecha' +
+            '&order=fecha.desc&limit=30'
+        );
+
+        contenedor.replaceChildren();
+
+        if (!registros.length) {
+            contenedor.append(
+                text('p', 'Todavía no hay peticiones publicadas.')
+            );
+            return;
+        }
+
+        for (const registro of registros) {
+            const tarjeta = text('div', '');
+            tarjeta.className = 'card';
+
+            tarjeta.append(
+                text('h3', registro.nombre || 'Anónimo'),
+                text('article', registro.peticion)
+            );
+
+            contenedor.append(tarjeta);
+        }
+    } catch (error) {
+        contenedor.replaceChildren(
+            text('p', 'No se pudieron cargar las peticiones.')
+        );
+        console.error(error);
+    }
+}
+
+async function cargarTestimoniosPublicos() {
+    const contenedor = $('listaTestimonios');
+    contenedor.replaceChildren(
+        text('p', 'Cargando testimonios...')
+    );
+
+    try {
+        const registros = await api(
+            '/rest/v1/testimonios_publicos' +
+            '?select=nombre,testimonio,fecha' +
+            '&order=fecha.desc&limit=30'
+        );
+
+        contenedor.replaceChildren();
+
+        if (!registros.length) {
+            contenedor.append(
+                text('p', 'Todavía no hay testimonios publicados.')
+            );
+            return;
+        }
+
+        for (const registro of registros) {
+            const tarjeta = text('div', '');
+            tarjeta.className = 'card';
+
+            tarjeta.append(
+                text('h3', registro.nombre || 'Anónimo'),
+                text('article', registro.testimonio)
+            );
+
+            contenedor.append(tarjeta);
+        }
+    } catch (error) {
+        contenedor.replaceChildren(
+            text('p', 'No se pudieron cargar los testimonios.')
+        );
+        console.error(error);
+    }
+}
+
+/* Cargar las publicaciones cuando se abra Oración. */
+const mostrarSeccionOriginal = show;
+
+show = function (id) {
+    mostrarSeccionOriginal(id);
+
+    if (id === 'oracion' && configured) {
+        cargarOracionesPublicas();
+        cargarTestimoniosPublicos();
+    }
+};
+
+/* ADMINISTRACIÓN DE ORACIONES Y TESTIMONIOS */
+
+async function cargarSolicitudesOracion() {
+    if (!admin || !session?.access_token) return;
+
+    const cajaOraciones = $('adminOraciones');
+    const cajaTestimonios = $('adminTestimonios');
+
+    cajaOraciones.replaceChildren(text('p', 'Cargando...'));
+    cajaTestimonios.replaceChildren(text('p', 'Cargando...'));
+
+    try {
+        const peticiones = await api(
+            '/rest/v1/peticiones_oracion' +
+            '?select=id,nombre,peticion,estado,aprobada,' +
+            'solicita_publicacion,fecha' +
+            '&order=fecha.desc&limit=100'
+        );
+
+        const testimonios = await api(
+            '/rest/v1/testimonios_oracion' +
+            '?select=id,nombre,testimonio,aprobado,' +
+            'solicita_publicacion,fecha' +
+            '&order=fecha.desc&limit=100'
+        );
+
+        cajaOraciones.replaceChildren();
+        cajaTestimonios.replaceChildren();
+
+        if (!peticiones.length) {
+            cajaOraciones.append(
+                text('p', 'No hay peticiones recibidas.')
+            );
+        }
+
+        for (const p of peticiones) {
+            const tarjeta = text('div', '');
+            tarjeta.className = 'card';
+            tarjeta.style.marginBottom = '12px';
+
+            tarjeta.append(
+                text('h3', p.nombre || 'Anónimo'),
+                text('article', p.peticion),
+                text(
+                    'p',
+                    'Estado: ' + p.estado +
+                    ' | Autoriza publicación: ' +
+                    (p.solicita_publicacion ? 'Sí' : 'No')
+                )
+            );
+
+            const acciones = text('div', '');
+            acciones.className = 'actions';
+
+            if (p.solicita_publicacion) {
+                const aprobar = text('button', 'Aprobar');
+                aprobar.onclick = () =>
+                    actualizarPeticion(p.id, true);
+                acciones.append(aprobar);
+            }
+
+            const retirar = text('button', 'No publicar');
+            retirar.className = 'secondary';
+            retirar.onclick = () =>
+                actualizarPeticion(p.id, false);
+
+            acciones.append(retirar);
+            tarjeta.append(acciones);
+            cajaOraciones.append(tarjeta);
+        }
+
+        if (!testimonios.length) {
+            cajaTestimonios.append(
+                text('p', 'No hay testimonios recibidos.')
+            );
+        }
+
+        for (const t of testimonios) {
+            const tarjeta = text('div', '');
+            tarjeta.className = 'card';
+            tarjeta.style.marginBottom = '12px';
+
+            tarjeta.append(
+                text('h3', t.nombre || 'Anónimo'),
+                text('article', t.testimonio),
+                text(
+                    'p',
+                    'Autoriza publicación: ' +
+                    (t.solicita_publicacion ? 'Sí' : 'No')
+                )
+            );
+
+            const acciones = text('div', '');
+            acciones.className = 'actions';
+
+            if (t.solicita_publicacion) {
+                const aprobar = text('button', 'Aprobar');
+                aprobar.onclick = () =>
+                    actualizarTestimonio(t.id, true);
+                acciones.append(aprobar);
+            }
+
+            const retirar = text('button', 'No publicar');
+            retirar.className = 'secondary';
+            retirar.onclick = () =>
+                actualizarTestimonio(t.id, false);
+
+            acciones.append(retirar);
+            tarjeta.append(acciones);
+            cajaTestimonios.append(tarjeta);
+        }
+
+    } catch (error) {
+        cajaOraciones.replaceChildren(
+            text('p', 'Error al consultar solicitudes.')
+        );
+        cajaTestimonios.replaceChildren(
+            text('p', 'Comprueba los permisos de administrador.')
+        );
+        alert('Error: ' + error.message);
+    }
+}
+
+
+
+/* APROBAR O RETIRAR PETICIONES */
+
+async function actualizarPeticion(id, aprobar) {
+    if (!admin) return;
+
+    if (aprobar && !confirm(
+        '¿Confirmas que revisaste la petición y autorizas su publicación?'
+    )) return;
+
+    try {
+        const resultado = await api(
+            '/rest/v1/peticiones_oracion?id=eq.' +
+            encodeURIComponent(id),
+            {
+                method: 'PATCH',
+                headers: { Prefer: 'return=representation' },
+                body: JSON.stringify({
+                    aprobada: aprobar,
+                    
+estado: aprobar ? 'en_oración' : 'pendiente'
+
+                })
+            }
+        );
+
+        if (!Array.isArray(resultado) || resultado.length !== 1) {
+            throw new Error(
+                'Supabase no confirmó la actualización.'
+            );
+        }
+
+        await cargarSolicitudesOracion();
+        alert('Petición actualizada correctamente.');
+
+    } catch (error) {
+        alert('No se pudo actualizar: ' + error.message);
+    }
+}
+
+/* APROBAR O RETIRAR TESTIMONIOS */
+
+async function actualizarTestimonio(id, aprobar) {
+    if (!admin) return;
+
+    if (aprobar && !confirm(
+        '¿Confirmas que revisaste el testimonio y autorizas su publicación?'
+    )) return;
+
+    try {
+        const resultado = await api(
+            '/rest/v1/testimonios_oracion?id=eq.' +
+            encodeURIComponent(id),
+            {
+                method: 'PATCH',
+                headers: { Prefer: 'return=representation' },
+                body: JSON.stringify({
+                    aprobado: aprobar
+                })
+            }
+        );
+
+        if (!Array.isArray(resultado) || resultado.length !== 1) {
+            throw new Error(
+                'Supabase no confirmó la actualización.'
+            );
+        }
+
+        await cargarSolicitudesOracion();
+        alert('Testimonio actualizado correctamente.');
+
+    } catch (error) {
+        alert('No se pudo actualizar: ' + error.message);
+    }
+}

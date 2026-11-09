@@ -201,15 +201,90 @@
             <div id="cards" class="grid"></div>
             <div id="reader" class="card hide" style="margin-top:16px"></div>
         </section>
-        <section id="oracion" class="hide">
-            <h2>Oramos por ti</h2>
-            <p>«Echando toda vuestra ansiedad sobre él, porque él tiene cuidado de vosotros». — 1 Pedro 5:7</p>
-            <div class="card">
-                <p>En esta versión no recogemos ni transmitimos peticiones privadas. Esta función se habilitará cuando
-                    exista un servidor seguro y una política de privacidad.</p>
-                <p>Puedes dedicar este momento a la oración personal.</p>
-            </div>
-        </section>
+        
+<section id="oracion" class="hide">
+    <h2>🙏 Oramos por ti</h2>
+
+    <p>
+        «Echando toda vuestra ansiedad sobre él,
+        porque él tiene cuidado de vosotros».
+        — 1 Pedro 5:7
+    </p>
+
+    <div class="grid">
+
+        <div class="card">
+            <h3>🙏 Envía tu petición de oración</h3>
+
+            <label for="nombreOracion">Tu nombre (opcional)</label>
+            <input id="nombreOracion" maxlength="100"
+                placeholder="Tu nombre">
+
+            <label for="textoOracion">¿Por qué deseas que oremos?</label>
+            <textarea id="textoOracion" maxlength="3000"
+                placeholder="Escribe aquí tu petición"></textarea>
+
+            <label>
+                <input type="checkbox" id="publicarOracion"
+                    style="width:auto">
+                Autorizo que mi petición sea publicada
+                después de su revisión.
+            </label>
+
+            <p class="muted">
+                Si no autorizas su publicación,
+                tu petición permanecerá privada.
+                Evita incluir teléfonos, direcciones
+                o datos personales de otras personas.
+            </p>
+
+            <button onclick="enviarOracion()">
+                Enviar petición
+            </button>
+
+            <p id="mensajeOracion" role="status"></p>
+        </div>
+
+        <div class="card">
+            <h3>💛 Comparte tu testimonio</h3>
+
+            <label for="nombreTestimonio">Tu nombre (opcional)</label>
+            <input id="nombreTestimonio" maxlength="100"
+                placeholder="Tu nombre">
+
+            <label for="textoTestimonio">Tu testimonio</label>
+            <textarea id="textoTestimonio" maxlength="3000"
+                placeholder="Cuéntanos cómo Dios respondió"></textarea>
+
+            <label>
+                <input type="checkbox" id="publicarTestimonio"
+                    style="width:auto">
+                Autorizo publicar mi testimonio
+                después de su revisión.
+            </label>
+
+            <p class="muted">
+                Los testimonios serán revisados antes
+                de aparecer públicamente.
+            </p>
+
+            <button onclick="enviarTestimonio()">
+                Enviar testimonio
+            </button>
+
+            <p id="mensajeTestimonio" role="status"></p>
+        </div>
+
+    </div>
+
+    <h2>🤝 Cadena de oración</h2>
+    <div id="listaOraciones" class="grid"></div>
+
+    <h2>✨ Testimonios de fe</h2>
+    <div id="listaTestimonios" class="grid"></div>
+</section>
+
+ 
         <section id="admin" class="hide">
             <h2>Administración</h2>
             <div class="notice" id="connectionMessage">Configuración pendiente.</div>
@@ -233,12 +308,25 @@
                 <div class="actions"><button onclick="save()">Guardar en Supabase</button><button class="secondary"
                         onclick="resetForm()">Nuevo</button></div>
                 <div id="adminList"></div>
+                
+<h2>🙏 Administración de oración</h2>
+
+<div class="actions">
+    <button onclick="cargarSolicitudesOracion()">
+        Actualizar solicitudes
+    </button>
+</div>
+
+<h3>Peticiones recibidas</h3>
+<div id="adminOraciones"></div>
+
+<h3>Testimonios recibidos</h3>
+<div id="adminTestimonios"></div>
+
             </div>
         </section>
     </main>
-   <footer>
-    Luz para tu Alma · Compartiendo esperanza a través de la Palabra de Dios
-</footer>
+    <footer>Luz para tu Alma · Proyecto en desarrollo</footer>
     <script src="config.js"></script>
     <script src="app.js"></script>
 </body>
