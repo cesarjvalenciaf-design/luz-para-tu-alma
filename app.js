@@ -174,6 +174,19 @@ async function enviarTestimonio() {
     }
 }
 
+
+function obtenerVisitanteOracion() {
+    const clave = 'luz_para_tu_alma_visitante_oracion';
+
+    let id = localStorage.getItem(clave);
+
+    if (!id) {
+        id = crypto.randomUUID();
+        localStorage.setItem(clave, id);
+    }
+
+    return id;
+}
 async function cargarOracionesPublicas() {
     const contenedor = $('listaOraciones');
     contenedor.replaceChildren(
@@ -196,17 +209,72 @@ async function cargarOracionesPublicas() {
             return;
         }
 
-        for (const registro of registros) {
-            const tarjeta = text('div', '');
-            tarjeta.className = 'card';
+        
+for (const registro of registros) {
+    const tarjeta = text('div', '');
+    tarjeta.className = 'card';
 
-            tarjeta.append(
-                text('h3', registro.nombre || 'Anónimo'),
-                text('article', registro.peticion)
+    const nombre = text('h3', registro.nombre || 'Anónimo');
+    const peticion = text('article', registro.peticion);
+
+    const boton = document.createElement('button');
+    boton.type = 'button';
+    boton.textContent = '🙏 Estoy orando por ti';
+
+    const contador = text('p', 'Personas orando: ...');
+
+    tarjeta.append(nombre, peticion, boton, contador);
+    contenedor.append(tarjeta);
+
+    try {
+        const cantidad = await apiPublica(
+            '/rest/v1/rpc/contar_oraciones',
+            {
+                method: 'POST',
+                body: JSON.stringify({
+                    p_peticion_id: registro.id
+                })
+            }
+        );
+        contador.textContent = 'Personas orando: ' + cantidad;
+    } catch (error) {
+        contador.textContent = 'Contador no disponible';
+    }
+
+    boton.addEventListener('click', async () => {
+        boton.disabled = true;
+
+        try {
+            await apiPublica(
+                '/rest/v1/rpc/registrar_oracion',
+                {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        p_peticion_id: registro.id,
+                        p_visitante_id: obtenerVisitanteOracion()
+                    })
+                }
             );
 
-            contenedor.append(tarjeta);
+            const cantidad = await apiPublica(
+                '/rest/v1/rpc/contar_oraciones',
+                {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        p_peticion_id: registro.id
+                    })
+                }
+            );
+
+            contador.textContent = 'Personas orando: ' + cantidad;
+            boton.textContent = '✓ Gracias por unirte en oración';
+        } catch (error) {
+            boton.disabled = false;
+            alert('No se pudo registrar tu oración: ' + error.message);
         }
+    });
+}
+
     } catch (error) {
         contenedor.replaceChildren(
             text('p', 'No se pudieron cargar las peticiones.')
