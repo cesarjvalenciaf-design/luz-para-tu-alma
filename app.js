@@ -457,6 +457,18 @@ acciones.append(eliminar);
                 actualizarTestimonio(t.id, false);
 
             acciones.append(retirar);
+
+const eliminarTest = text('button', 'Eliminar');
+eliminarTest.className = 'danger';
+eliminarTest.style.backgroundColor = '#b42318';
+eliminarTest.style.color = 'white';
+
+eliminarTest.onclick = () => {
+    eliminarTestimonio(t.id);
+};
+
+acciones.append(eliminarTest);
+
             tarjeta.append(acciones);
             cajaTestimonios.append(tarjeta);
         }
@@ -584,5 +596,43 @@ async function actualizarTestimonio(id, aprobar) {
 
     } catch (error) {
         alert('No se pudo actualizar: ' + error.message);
+    }
+}
+
+
+/* RETIRAR TESTIMONIOS DE LA PUBLICACIÓN */
+async function eliminarTestimonio(id) {
+    if (!admin) return;
+
+    if (!confirm(
+        '¿Seguro que deseas retirar este testimonio de la página pública?'
+    )) return;
+
+    try {
+        const resultado = await api(
+            '/rest/v1/testimonios_oracion?id=eq.' +
+            encodeURIComponent(id),
+            {
+                method: 'PATCH',
+                headers: {
+                    Prefer: 'return=representation'
+                },
+                body: JSON.stringify({
+                    aprobado: false
+                })
+            }
+        );
+
+        if (!Array.isArray(resultado) || resultado.length !== 1) {
+            throw new Error(
+                'Supabase no confirmó la actualización.'
+            );
+        }
+
+        await cargarSolicitudesOracion();
+        alert('Testimonio retirado correctamente.');
+
+    } catch (error) {
+        alert('No se pudo retirar: ' + error.message);
     }
 }
