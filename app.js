@@ -337,7 +337,12 @@ show = function (id) {
 };
 
 /* ADMINISTRACIÓN DE ORACIONES Y TESTIMONIOS */
+let filtroPeticionesActual = 'pendientes';
 
+function filtrarPeticiones(filtro) {
+    filtroPeticionesActual = filtro;
+    cargarSolicitudesOracion();
+}
 async function cargarSolicitudesOracion() {
     if (!admin || !session?.access_token) return;
 
@@ -372,7 +377,14 @@ async function cargarSolicitudesOracion() {
         }
 
         for (const p of peticiones) {
-            if (p.estado === 'eliminada') continue;
+            if (filtroPeticionesActual === 'pendientes' &&
+    (p.estado === 'eliminada' || p.aprobada)) continue;
+
+if (filtroPeticionesActual === 'publicadas' &&
+    (p.estado === 'eliminada' || !p.aprobada || !p.solicita_publicacion)) continue;
+
+if (filtroPeticionesActual === 'retiradas' &&
+    p.estado !== 'eliminada') continue;
             const tarjeta = text('div', '');
             tarjeta.className = 'card';
             tarjeta.style.marginBottom = '12px';
@@ -390,7 +402,13 @@ async function cargarSolicitudesOracion() {
 
             const acciones = text('div', '');
             acciones.className = 'actions';
-
+if (p.estado === 'eliminada') {
+    tarjeta.append(
+        text('p', 'Esta petición fue retirada y no puede modificarse desde este panel.')
+    );
+    cajaOraciones.append(tarjeta);
+    continue;
+}
             if (p.solicita_publicacion) {
                 const aprobar = text('button', 'Aprobar');
                 aprobar.onclick = () =>
@@ -419,6 +437,18 @@ acciones.append(eliminar);
             tarjeta.append(acciones);
             cajaOraciones.append(tarjeta);
         }
+
+if (cajaOraciones.children.length === 0) {
+    const mensajes = {
+        pendientes: 'No hay peticiones pendientes.',
+        publicadas: 'No hay peticiones publicadas.',
+        retiradas: 'No hay peticiones retiradas.'
+    };
+
+    cajaOraciones.append(
+        text('p', mensajes[filtroPeticionesActual] || 'No hay peticiones para mostrar.')
+    );
+}
 
         if (!testimonios.length) {
             cajaTestimonios.append(
