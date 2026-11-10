@@ -372,6 +372,7 @@ async function cargarSolicitudesOracion() {
         }
 
         for (const p of peticiones) {
+            if (p.estado === 'eliminada') continue;
             const tarjeta = text('div', '');
             tarjeta.className = 'card';
             tarjeta.style.marginBottom = '12px';
@@ -403,6 +404,18 @@ async function cargarSolicitudesOracion() {
                 actualizarPeticion(p.id, false);
 
             acciones.append(retirar);
+
+const eliminar = text('button', 'Eliminar');
+eliminar.className = 'danger';
+eliminar.style.backgroundColor = '#b42318';
+eliminar.style.color = 'white';
+
+eliminar.onclick = () => {
+    eliminarPeticion(p.id);
+};
+
+acciones.append(eliminar);
+
             tarjeta.append(acciones);
             cajaOraciones.append(tarjeta);
         }
@@ -497,6 +510,44 @@ estado: aprobar ? 'en_oración' : 'pendiente'
 
     } catch (error) {
         alert('No se pudo actualizar: ' + error.message);
+    }
+}
+
+/* ELIMINAR PETICION DE LA VISTA PUBLICA */
+async function eliminarPeticion(id) {
+    if (!admin) return;
+
+    const confirmar = confirm(
+        '¿Deseas eliminar esta petición de oración? Dejará de aparecer públicamente.'
+    );
+
+    if (!confirmar) return;
+
+    try {
+        const resultado = await api(
+            '/rest/v1/peticiones_oracion?id=eq.' +
+            encodeURIComponent(id),
+            {
+                method: 'PATCH',
+                headers: {
+                    Prefer: 'return=representation'
+                },
+                body: JSON.stringify({
+                    aprobada: false,
+                    estado: 'eliminada'
+                })
+            }
+        );
+
+        if (!Array.isArray(resultado) || resultado.length !== 1) {
+            throw new Error('Supabase no confirmó la eliminación.');
+        }
+
+        await cargarSolicitudesOracion();
+        alert('Petición retirada correctamente.');
+
+    } catch (error) {
+        alert('No se pudo eliminar: ' + error.message);
     }
 }
 
