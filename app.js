@@ -338,11 +338,18 @@ show = function (id) {
 
 /* ADMINISTRACIÓN DE ORACIONES Y TESTIMONIOS */
 let filtroPeticionesActual = 'pendientes';
+let filtroTestimoniosActual = 'pendientes';
 
 function filtrarPeticiones(filtro) {
     filtroPeticionesActual = filtro;
     cargarSolicitudesOracion();
 }
+
+function filtrarTestimonios(filtro) {
+    filtroTestimoniosActual = filtro;
+    cargarSolicitudesOracion();
+}
+
 async function cargarSolicitudesOracion() {
     if (!admin || !session?.access_token) return;
 
@@ -363,7 +370,7 @@ async function cargarSolicitudesOracion() {
         const testimonios = await api(
             '/rest/v1/testimonios_oracion' +
             '?select=id,nombre,testimonio,aprobado,' +
-            'solicita_publicacion,fecha' +
+           'solicita_publicacion,estado,fecha' +
             '&order=fecha.desc&limit=100'
         );
 
@@ -457,6 +464,15 @@ if (cajaOraciones.children.length === 0) {
         }
 
         for (const t of testimonios) {
+           if (filtroTestimoniosActual === 'pendientes' &&
+    t.estado !== 'pendiente') continue;
+
+if (filtroTestimoniosActual === 'publicados' &&
+    (t.estado !== 'publicado' || !t.aprobado ||
+     !t.solicita_publicacion)) continue;
+
+if (filtroTestimoniosActual === 'retirados' &&
+    t.estado !== 'retirado') continue;
             const tarjeta = text('div', '');
             tarjeta.className = 'card';
             tarjeta.style.marginBottom = '12px';
@@ -609,9 +625,10 @@ async function actualizarTestimonio(id, aprobar) {
             {
                 method: 'PATCH',
                 headers: { Prefer: 'return=representation' },
-                body: JSON.stringify({
-                    aprobado: aprobar
-                })
+               body: JSON.stringify({
+    aprobado: aprobar,
+    estado: aprobar ? 'publicado' : 'retirado'
+})
             }
         );
 
@@ -647,9 +664,10 @@ async function eliminarTestimonio(id) {
                 headers: {
                     Prefer: 'return=representation'
                 },
-                body: JSON.stringify({
-                    aprobado: false
-                })
+              body: JSON.stringify({
+    aprobado: false,
+    estado: 'retirado'
+})
             }
         );
 
