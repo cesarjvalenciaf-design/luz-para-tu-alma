@@ -155,8 +155,7 @@ async function enviarEnlaceEstudiante(nombre, correo) {
     }
 
     try {
-        const destino = window.location.origin +
-            window.location.pathname;
+       const destino = 'https://cesarjvalenciaf-design.github.io/luz-para-tu-alma/';
 
         await apiPublica('/auth/v1/otp', {
             method: 'POST',
