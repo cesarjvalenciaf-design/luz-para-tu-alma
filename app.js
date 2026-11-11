@@ -28,11 +28,8 @@ async function apiPublica(path, opts = {}) {
     }
 
     if (!res.ok) {
-        throw new Error(
-            data?.message ||
-            data?.error ||
-            'Error HTTP ' + res.status
-        );
+        throw new Error('Error HTTP ' + res.status + ': ' +
+            (data?.message || data?.error_description || data?.error || 'Solicitud rechazada'));
     }
 
     return data;
@@ -143,8 +140,14 @@ function abrirLeccion(numero) {
 }
 
 async function enviarEnlaceEstudiante(nombre, correo) {
-    nombre = nombre.trim();
-    correo = correo.trim().toLowerCase();
+    // Compatible con formularios antiguos que pasan el evento de envío.
+    if (nombre && typeof nombre === 'object' && typeof nombre.preventDefault === 'function') {
+        nombre.preventDefault();
+        nombre = document.getElementById('nombreEstudiante')?.value || '';
+        correo = document.getElementById('correoEstudiante')?.value || '';
+    }
+    nombre = typeof nombre === 'string' ? nombre.trim() : '';
+    correo = typeof correo === 'string' ? correo.trim().toLowerCase() : '';
 
     if (!nombre || !correo) {
         alert('Escribe tu nombre y correo electrónico.');
@@ -167,7 +170,11 @@ async function enviarEnlaceEstudiante(nombre, correo) {
 
         alert('Revisa tu correo. Te enviamos un enlace para ingresar.');
     } catch (error) {
-        alert('Error al enviar el enlace: ' + error.message);
+        if (/429|rate limit|too many/i.test(error.message)) {
+            alert('Supabase ha limitado temporalmente los correos de acceso. No sigas solicitando enlaces. Revisa Authentication > Rate Limits y vuelve a intentar cuando se restablezca el límite.');
+        } else {
+            alert('Error al enviar el enlace: ' + error.message);
+        }
     }
 }
 
@@ -2794,9 +2801,13 @@ function actualizarEstadoEstudiante(mensaje) {
   const registro = document.getElementById('registroEstudiante');
   if (!caja) return;
   const correo = sesionEstudiante?.usuario?.email;
-  caja.textContent = mensaje || (correo
-    ? '✓ Sesión de estudiante: ' + correo + '. Progreso sincronizado cuando hay conexión.'
-    : 'Estás estudiando como visitante. El progreso se guarda en este navegador. Inicia sesión para sincronizarlo.');
+ 
+    caja.textContent = typeof mensaje === 'string' && mensaje
+        ? mensaje
+        : (correo
+            ? '✓ Sesión de estudiante: ' + correo + '. Progreso sincronizado cuando hay conexión.'
+            : 'Estás estudiando como visitante. El progreso se guarda en este navegador. Inicia sesión para sincronizarlo.');
+
   if (registro) registro.classList.toggle('hide', !!correo);
 }
 function datosLocalesEstudio(numero) {
