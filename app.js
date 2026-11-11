@@ -179,7 +179,15 @@ email_redirect_to: destino
 
 function show(id){document.querySelectorAll('main>section').forEach(s=>s.classList.toggle('hide',s.id!==id));if(id==='biblioteca')render();if(id==='admin')renderAdmin()}
 function filterType(t){show('biblioteca');$('typeFilter').value=t;render()}
-function render(){const target=$('cards');target.replaceChildren();const q=$('search').value.toLocaleLowerCase(),type=$('typeFilter').value;const found=items.filter(x=>(!type||x.category===type)&&[x.title,x.ref,x.body].join(' ').toLocaleLowerCase().includes(q));for(const x of found){const c=text('div','');c.className='card';c.append(text('small',x.category+' · '+x.ref),text('h3',x.title));const b=text('button','Leer estudio');b.onclick=()=>read(x.id);c.append(b);target.append(c)}if(!found.length)target.append(text('p','No hay publicaciones que coincidan.'))}
+function categoriaFiltro(nombre){
+  const normalizada=String(nombre||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim().toLowerCase();
+  if(['estudio','estudios','estudio biblico','estudios biblicos'].includes(normalizada))return 'estudios biblicos';
+  if(['sermon','sermones'].includes(normalizada))return 'sermones';
+  if(['meditacion','meditaciones'].includes(normalizada))return 'meditaciones';
+  if(['reflexion','reflexiones'].includes(normalizada))return 'reflexiones';
+  return normalizada;
+}
+function render(){const target=$('cards');target.replaceChildren();const q=$('search').value.toLocaleLowerCase(),type=$('typeFilter').value;const found=items.filter(x=>(!type||categoriaFiltro(x.category)===categoriaFiltro(type))&&[x.title,x.ref,x.body].join(' ').toLocaleLowerCase().includes(q));for(const x of found){const c=text('div','');c.className='card';c.append(text('small',x.category+' · '+x.ref),text('h3',x.title));const b=text('button','Leer estudio');b.onclick=()=>read(x.id);c.append(b);target.append(c)}if(!found.length)target.append(text('p','No hay publicaciones que coincidan.'))}
 function read(id){const x=items.find(a=>a.id===id),r=$('reader');if(!x)return;r.replaceChildren(text('small',x.category+' · '+x.ref),text('h2',x.title),text('article',x.body));const b=text('button','Cerrar');b.className='secondary';b.onclick=()=>r.classList.add('hide');r.append(b);r.classList.remove('hide');r.scrollIntoView({behavior:'smooth'})}
 function mapPost(x){return {id:x.id,title:x.title,ref:x.bible_reference||'',body:x.content,category:categories.find(c=>c.id===x.category_id)?.name||'Estudio',category_id:x.category_id,summary:x.summary||'',status:x.status,slug:x.slug}}
 async function loadCategories(){categories=await api('/rest/v1/categories?select=id,name&order=id.asc');const select=$('category');select.replaceChildren();for(const c of categories){const opt=document.createElement('option');opt.value=c.id;opt.textContent=c.name;select.append(opt)}}
