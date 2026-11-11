@@ -188,7 +188,45 @@ function categoriaFiltro(nombre){
   return normalizada;
 }
 function render(){const target=$('cards');target.replaceChildren();const q=$('search').value.toLocaleLowerCase(),type=$('typeFilter').value;const found=items.filter(x=>(!type||categoriaFiltro(x.category)===categoriaFiltro(type))&&[x.title,x.ref,x.body].join(' ').toLocaleLowerCase().includes(q));for(const x of found){const c=text('div','');c.className='card';c.append(text('small',x.category+' · '+x.ref),text('h3',x.title));const b=text('button','Leer estudio');b.onclick=()=>read(x.id);c.append(b);target.append(c)}if(!found.length)target.append(text('p','No hay publicaciones que coincidan.'))}
-function read(id){const x=items.find(a=>a.id===id),r=$('reader');if(!x)return;r.replaceChildren(text('small',x.category+' · '+x.ref),text('h2',x.title),text('article',x.body));const b=text('button','Cerrar');b.className='secondary';b.onclick=()=>r.classList.add('hide');r.append(b);r.classList.remove('hide');r.scrollIntoView({behavior:'smooth'})}
+function read(id){
+  const x=items.find(a=>a.id===id),r=$('reader');
+  if(!x)return;
+  r.replaceChildren();
+  r.classList.add('lector-biblico');
+  const etiqueta=text('span',x.category||'Lectura bíblica');
+  etiqueta.className='lector-etiqueta';
+  const titulo=text('h2',x.title);
+  titulo.className='lector-titulo';
+  const referencia=text('p',x.ref||'');
+  referencia.className='lector-referencia';
+  const contenido=text('div','');
+  contenido.className='lector-contenido';
+  // El contenido guardado en Supabase es texto plano: nunca interpretarlo como HTML.
+  const bloques=String(x.body||'').replace(/\r\n?/g,'\n').split(/\n\s*\n/);
+  for(const bloque of bloques){
+    const lineas=bloque.split('\n').map(s=>s.trim()).filter(Boolean);
+    if(!lineas.length)continue;
+    // Los días de Escuela Sabática se presentan como subtítulos.
+    const esDia=/^(?:(?:día|dia)\s+\d+\s*[:.\-–—]\s*)?(?:sábado|sabado|domingo|lunes|martes|miércoles|miercoles|jueves|viernes)(?:\s*[:.\-–—]|\s+\d|\s*$)/i.test(lineas[0]);
+    const esEncabezado=/^(?:introducción|introduccion|texto clave|versículo para memorizar|versiculo para memorizar|para reflexionar|reflexión|reflexion|conclusión|conclusion|aplicación|aplicacion|oración final|oracion final)\s*:?$/i.test(lineas[0]);
+    if((esDia||esEncabezado)&&lineas.length===1){
+      contenido.append(text('h3',lineas[0]));
+    }else if(esDia&&lineas.length>1){
+      contenido.append(text('h3',lineas[0]));
+      contenido.append(text('p',lineas.slice(1).join(' ')));
+    }else{
+      const parrafo=text('p',lineas.join(' '));
+      if(/^(?:pregunta|para reflexionar|reflexiona|¿)/i.test(lineas[0]))parrafo.className='lector-pregunta';
+      contenido.append(parrafo);
+    }
+  }
+  const b=text('button','← Volver a la biblioteca');
+  b.className='secondary lector-cerrar';
+  b.onclick=()=>r.classList.add('hide');
+  r.append(etiqueta,titulo,referencia,contenido,b);
+  r.classList.remove('hide');
+  r.scrollIntoView({behavior:'smooth'});
+}
 function mapPost(x){return {id:x.id,title:x.title,ref:x.bible_reference||'',body:x.content,category:categories.find(c=>c.id===x.category_id)?.name||'Estudio',category_id:x.category_id,summary:x.summary||'',status:x.status,slug:x.slug}}
 async function loadCategories(){categories=await api('/rest/v1/categories?select=id,name&order=id.asc');const select=$('category');select.replaceChildren();for(const c of categories){const opt=document.createElement('option');opt.value=c.id;opt.textContent=c.name;select.append(opt)}}
 async function loadPublic(){const posts=await api('/rest/v1/posts?select=id,title,bible_reference,content,category_id,summary,status,slug&status=eq.published&order=created_at.desc');items=posts.map(mapPost);render()}

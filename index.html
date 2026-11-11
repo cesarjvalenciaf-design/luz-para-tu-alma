@@ -165,6 +165,71 @@
       .estudio-opcion input { width: auto; margin-right: 8px; }
       .estudio-resultado { font-weight: 600; margin: 12px 0; }
       .estudio-acciones { display: flex; gap: 10px; flex-wrap: wrap; margin: 20px 0; }
+
+        /* Lector editorial de la Biblioteca bíblica */
+        #reader.lector-biblico {
+            max-width: 790px;
+            margin: 24px auto 0 !important;
+            padding: clamp(22px, 5vw, 48px);
+            border: 1px solid #e3e6dc;
+            border-radius: 22px;
+            background: #fffefb;
+            box-shadow: 0 12px 36px rgba(23,58,50,.09);
+        }
+        .lector-biblico .lector-etiqueta {
+            display: inline-block;
+            padding: 7px 12px;
+            border-radius: 30px;
+            background: #edf5ef;
+            color: #176d58;
+            font-size: .78rem;
+            font-weight: 750;
+            letter-spacing: .07em;
+            text-transform: uppercase;
+        }
+        .lector-biblico .lector-titulo {
+            font-family: Georgia, 'Times New Roman', serif;
+            font-size: clamp(1.9rem, 5vw, 2.8rem);
+            line-height: 1.2;
+            letter-spacing: -.02em;
+            margin: 18px 0 12px;
+            color: #173a32;
+        }
+        .lector-biblico .lector-referencia {
+            color: #7a632f;
+            font-weight: 650;
+            font-size: 1rem;
+            margin-bottom: 26px;
+        }
+        .lector-biblico .lector-contenido {
+            font-family: Georgia, 'Times New Roman', serif;
+            color: #273b33;
+            font-size: clamp(1.09rem, 2.6vw, 1.2rem);
+            line-height: 1.9;
+            overflow-wrap: anywhere;
+        }
+        .lector-biblico .lector-contenido p { margin: 0 0 1.25em; }
+        .lector-biblico .lector-contenido h3 {
+            font-family: system-ui, Arial, sans-serif;
+            font-size: clamp(1.2rem, 3.5vw, 1.5rem);
+            line-height: 1.35;
+            color: #176d58;
+            margin: 1.9em 0 .7em;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #d9e4dc;
+        }
+        .lector-biblico .lector-contenido .lector-pregunta {
+            padding: 16px 18px;
+            background: #f1f6f0;
+            border-left: 4px solid #b89445;
+            border-radius: 0 12px 12px 0;
+            font-style: italic;
+        }
+        .lector-biblico .lector-cerrar { margin-top: 20px; }
+        @media (max-width: 480px) {
+            #reader.lector-biblico { padding: 22px 19px; border-radius: 16px; }
+            .lector-biblico .lector-contenido { line-height: 1.82; }
+        }
     </style>
 </head>
 
