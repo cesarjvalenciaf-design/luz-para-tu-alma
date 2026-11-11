@@ -163,7 +163,7 @@ const destino = 'https://cesarjvalenciaf-design.github.io/luz-para-tu-alma/';
                 email: correo,
                 data: { nombre_estudiante: nombre },
                 create_user: true,
-email_redirect_to: window.location.origin + '/luz-para-tu-alma/'
+email_redirect_to: destino
             })
         });
 
@@ -215,7 +215,7 @@ async function recuperarSesionEstudiante() {
             usuario: usuario
         };
 
-        sessionStorage.setItem(
+        localStorage.setItem(
             'luz_estudiante',
             JSON.stringify(sesionEstudiante)
         );
@@ -234,28 +234,47 @@ async function recuperarSesionEstudiante() {
 }
 function cargarSesionEstudianteGuardada() {
     try {
-        const guardada = sessionStorage.getItem('luz_estudiante');
-
+        // Migrar sesiones anteriores sin pedir otro correo al estudiante.
+        const guardada = localStorage.getItem('luz_estudiante') ||
+                         sessionStorage.getItem('luz_estudiante');
         if (!guardada) return;
-
         const datos = JSON.parse(guardada);
-
-        if (!datos.access_token || !datos.usuario?.id) {
+        if (!datos.access_token || !datos.refresh_token || !datos.usuario?.id) {
+            localStorage.removeItem('luz_estudiante');
             sessionStorage.removeItem('luz_estudiante');
             return;
         }
-
         sesionEstudiante = datos;
-
-        console.log('Sesión de estudiante recuperada');
+        localStorage.setItem('luz_estudiante', JSON.stringify(datos));
+        sessionStorage.removeItem('luz_estudiante');
     } catch (error) {
+        localStorage.removeItem('luz_estudiante');
         sessionStorage.removeItem('luz_estudiante');
         console.error('Error al recuperar sesión:', error);
     }
 }
 
-cargarSesionEstudianteGuardada();
-recuperarSesionEstudiante().then(() => { if (sesionEstudiante) iniciarSincronizacionEstudiante(); else actualizarEstadoEstudiante(); });
+async function iniciarSesionEstudianteAlAbrir() {
+    // Los enlaces de acceso tienen prioridad sobre una sesión anterior.
+    const parametros = new URLSearchParams(window.location.hash.substring(1));
+    if (parametros.has('access_token') && parametros.has('refresh_token')) {
+        await recuperarSesionEstudiante();
+        return;
+    }
+    cargarSesionEstudianteGuardada();
+    if (!sesionEstudiante) {
+        actualizarEstadoEstudiante();
+        return;
+    }
+    // Validar o renovar los tokens antes de mostrar una sesión activa.
+    try {
+        await iniciarSincronizacionEstudiante();
+    } catch (error) {
+        console.warn('No se pudo restaurar la sesión del estudiante:', error);
+    }
+}
+
+iniciarSesionEstudianteAlAbrir();
 if (new URLSearchParams(window.location.search).has('admin')) {
     show('admin');
 }
@@ -2835,9 +2854,21 @@ async function peticionEstudiante(ruta,opciones={}) {
     if (!/401|JWT|expired|invalid/i.test(error.message)) throw error;
     const refresh=sesionEstudiante.refresh_token;
     if(!refresh)throw error;
-    const nueva=await apiPublica('/auth/v1/token?grant_type=refresh_token',{method:'POST',body:JSON.stringify({refresh_token:refresh})});
+    let nueva;
+    try {
+      nueva=await apiPublica('/auth/v1/token?grant_type=refresh_token',{method:'POST',body:JSON.stringify({refresh_token:refresh})});
+    } catch (errorRenovacion) {
+      // Solo borrar credenciales cuando Supabase confirma que no son válidas.
+      if (/400|401|invalid|expired|revoked|refresh_token_not_found/i.test(errorRenovacion.message)) {
+        sesionEstudiante=null;
+        localStorage.removeItem('luz_estudiante');
+        sessionStorage.removeItem('luz_estudiante');
+        actualizarEstadoEstudiante('Tu sesión venció. Ingresa nuevamente con tu correo; tus estudios permanecen guardados.');
+      }
+      throw errorRenovacion;
+    }
     sesionEstudiante={...sesionEstudiante,access_token:nueva.access_token,refresh_token:nueva.refresh_token||refresh};
-    sessionStorage.setItem('luz_estudiante',JSON.stringify(sesionEstudiante));
+    localStorage.setItem('luz_estudiante',JSON.stringify(sesionEstudiante));
     return ejecutar();
   }
 }
@@ -2872,7 +2903,7 @@ async function iniciarSincronizacionEstudiante() {
       // Verificar sesión antes de acceder a los datos privados.
       const usuario=await peticionEstudiante('/auth/v1/user');
       sesionEstudiante.usuario=usuario;
-      sessionStorage.setItem('luz_estudiante',JSON.stringify(sesionEstudiante));
+      localStorage.setItem('luz_estudiante',JSON.stringify(sesionEstudiante));
       const remotos=await peticionEstudiante('/rest/v1/progreso_estudiantes?select=leccion,respuestas,completado&order=leccion.asc');
       for(let n=1;n<=20;n++){
         const remoto=remotos.find(r=>r.leccion===n);
