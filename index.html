@@ -150,6 +150,12 @@
                 padding: 40px
             }
         }
+      .estudio-pregunta { margin: 18px 0; padding: 16px; border: 1px solid #d9e4dc; border-radius: 12px; background: #fff; }
+      .estudio-pregunta p { line-height: 1.65; }
+      .estudio-opcion { display: block; font-weight: normal; margin: 10px 0; }
+      .estudio-opcion input { width: auto; margin-right: 8px; }
+      .estudio-resultado { font-weight: 600; margin: 12px 0; }
+      .estudio-acciones { display: flex; gap: 10px; flex-wrap: wrap; margin: 20px 0; }
     </style>
 </head>
 
@@ -163,8 +169,176 @@
     <button onclick="show('inicio')">Inicio</button>
     <button onclick="show('biblioteca')">Biblioteca</button>
     <button onclick="show('oracion')">Oración</button>
+
+<button onclick="show('escuela')">📖 Escuela Bíblica</button>
+
 </nav>
     <main>
+
+
+<section id="escuela" class="hide">
+
+  <h2>📖 Escuela Bíblica Virtual</h2>
+  <p>Bienvenido al curso La Fe de Jesús.</p>
+  <p>Estudia la Biblia a tu ritmo y avanza por sus 20 lecciones.</p>
+
+<div class="card" id="registroEstudiante">
+  <h3>📝 Inscripción de estudiantes</h3>
+  <p>Inscríbete para guardar tu avance en el curso La Fe de Jesús.</p>
+
+  <form onsubmit="event.preventDefault(); enviarEnlaceEstudiante(document.getElementById('nombreEstudiante').value, document.getElementById('correoEstudiante').value);">
+    <label for="nombreEstudiante">Nombre completo</label>
+    <input
+      id="nombreEstudiante"
+      type="text"
+      placeholder="Escribe tu nombre completo"
+      autocomplete="name"
+      required
+    >
+
+    <label for="correoEstudiante">Correo electrónico</label>
+    <input
+      id="correoEstudiante"
+      type="email"
+      placeholder="Escribe tu correo electrónico"
+      autocomplete="email"
+      required
+    >
+
+    <button type="submit">📩 Enviarme enlace de acceso</button>
+  </form>
+
+  <p>Recibirás un enlace por correo para ingresar sin contraseña.</p>
+</div>
+
+  <div class="card">
+    <h3>La Fe de Jesús</h3>
+    <p>20 estudios bíblicos para conocer mejor la Palabra de Dios.</p>
+    
+<p id="progresoGeneralCurso" role="status">📘 Has completado 0 de 20 estudios (0 %).</p>
+<div id="listaLecciones" class="grid"></div>
+
+  </div>
+</section>
+<section id="leccionDinamica" class="hide">
+  <div id="contenidoLeccionDinamica"></div>
+</section>
+<section id="leccion1" class="hide">
+  <h2>📖 Estudio 1: Lo que la Biblia enseña acerca de Dios</h2>
+
+  <p>
+    Bienvenido al primer estudio de La Fe de Jesús.
+    Descubriremos lo que enseña la Biblia acerca de Dios.
+  </p>
+
+  <div class="card">
+    <h3>Dios</h3>
+
+    <p><strong>1. ¿Cuántos dioses hay?</strong></p>
+    <p>Lectura bíblica: Isaías 46:9</p>
+
+<details style="margin:10px 0 18px;">
+  <summary style="cursor:pointer;color:#176d58;font-weight:bold;">
+    📖 Leer versículo
+  </summary>
+  <p style="padding:12px;background:#f0f7f3;border-radius:8px;">
+    <strong>Isaías 46:9</strong><br>
+    Acordaos de las cosas pasadas desde los tiempos antiguos;
+    porque yo soy Dios, y no hay otro Dios, y nada hay semejante a mí.
+  </p>
+</details>
+
+    <textarea id="respuesta1" placeholder="Escribe tu respuesta"></textarea>
+
+    <p><strong>2. ¿Cuál es la naturaleza de Dios?</strong></p>
+    <p>Lectura bíblica: Juan 4:24</p>
+
+<details style="margin:10px 0 18px;">
+  <summary style="cursor:pointer;color:#176d58;font-weight:bold;">
+    📖 Leer versículo
+  </summary>
+  <p style="padding:12px;background:#f0f7f3;border-radius:8px;">
+    <strong>Juan 4:24</strong>
+    Dios es Espíritu; y los que le adoran,
+    en espíritu y en verdad es necesario que adoren.
+  </p>
+</details>
+
+    <textarea id="respuesta2" placeholder="Escribe tu respuesta"></textarea>
+
+    <p><strong>3. ¿Cuáles son las tres personas de la Trinidad?</strong></p>
+    <p>Lectura bíblica: 2 Corintios 13:14</p>
+
+<details style="margin:10px 0 18px;">
+  <summary style="cursor:pointer;color:#176d58;font-weight:bold;">📖 Leer versículo</summary>
+  <p style="padding:12px;background:#f0f7f3;border-radius:8px;">
+    <strong>2 Corintios 13:14</strong>
+    La gracia del Señor Jesucristo, y el amor de Dios,
+    y la comunión del Espíritu Santo sea con todos vosotros. Amén.
+  </p>
+</details>
+    <textarea id="respuesta3" placeholder="Escribe tu respuesta"></textarea>
+
+    <p><strong>4. ¿Cómo es el carácter de Dios?</strong></p>
+    <p>Lectura bíblica: 1 Juan 4:8</p>
+
+<details style="margin:10px 0 18px;">
+  <summary style="cursor:pointer;color:#176d58;font-weight:bold;">📖 Leer versículo</summary>
+  <p style="padding:12px;background:#f0f7f3;border-radius:8px;">
+    <strong>1 Juan 4:8</strong>
+    El que no ama, no conoce a Dios; porque Dios es amor.
+  </p>
+</details>
+   <textarea id="respuesta4" placeholder="Escribe tu respuesta"></textarea>
+
+    <h3>Dios y el hombre</h3>
+
+    <p><strong>5. ¿Cómo nos considera Dios?</strong></p>
+    <p>Lectura bíblica: 1 Juan 3:1-2</p>
+
+<details style="margin:10px 0 18px;">
+  <summary style="cursor:pointer;color:#176d58;font-weight:bold;">📖 Leer versículo</summary>
+  <p style="padding:12px;background:#f0f7f3;border-radius:8px;">
+    <strong>1 Juan 3:1-2</strong>
+    Mirad cuál amor nos ha dado el Padre, que seamos llamados hijos de Dios.
+    Amados, ahora somos hijos de Dios.
+  </p>
+</details>
+   <textarea id="respuesta5" placeholder="Escribe tu respuesta"></textarea>
+
+    <p><strong>6. ¿Se preocupa Dios por nuestros problemas?</strong></p>
+    <p>Lectura bíblica: Salmos 40:1-3</p>
+
+<details style="margin:10px 0 18px;">
+  <summary style="cursor:pointer;color:#176d58;font-weight:bold;">📖 Leer versículo</summary>
+  <p style="padding:12px;background:#f0f7f3;border-radius:8px;">
+    <strong>Salmos 40:1-3</strong>
+    Pacientemente esperé a Jehová, e inclinóse a mí,
+    y oyó mi clamor.
+    Y puso luego en mi boca canción nueva,
+    alabanza a nuestro Dios.
+  </p>
+</details>
+   <textarea id="respuesta6" placeholder="Escribe tu respuesta"></textarea>
+
+<div style="margin-top:25px;padding:18px;background:#f0f7f3;border-radius:10px;">
+  <h3>📘 Mi progreso</h3>
+  <p id="progresoEstudio1">Responde las seis preguntas para completar este estudio.</p>
+
+  <button type="button" onclick="finalizarEstudio1()">
+    ✓ Finalizar estudio
+  </button>
+</div>
+
+    <p style="margin-top:20px;">
+      <button type="button" onclick="show('escuela')">
+        ← Volver a las lecciones
+      </button>
+    </p>
+  </div>
+</section>
+
+
         <section id="inicio">
             <h2>Bienvenido</h2>
             <p>Explora sermones, meditaciones, exégesis y estudios bíblicos. Los contenidos publicados están disponibles
