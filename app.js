@@ -49,6 +49,7 @@ function iniciarGuardadoEstudio1() {
 
         campo.addEventListener('input', function () {
             localStorage.setItem(clave, campo.value);
+            programarSincronizacion(i && 1);
         });
     }
 }
@@ -100,6 +101,7 @@ function finalizarEstudio1() {
 
     actualizarProgresoCurso();
     renderizarListaLecciones();
+    sincronizarEstudio(1);
     alert('¡Felicitaciones! Has completado el Estudio 1 de La Fe de Jesús. ' + resumenProgresoCurso());
 }
 
@@ -218,6 +220,7 @@ async function recuperarSesionEstudiante() {
             window.location.pathname + window.location.search
         );
 
+        await iniciarSincronizacionEstudiante();
         console.log('Estudiante autenticado correctamente');
     } catch (error) {
         console.error('Error al autenticar estudiante:', error);
@@ -246,7 +249,7 @@ function cargarSesionEstudianteGuardada() {
 }
 
 cargarSesionEstudianteGuardada();
-recuperarSesionEstudiante();
+recuperarSesionEstudiante().then(() => { if (sesionEstudiante) iniciarSincronizacionEstudiante(); else actualizarEstadoEstudiante(); });
 if (new URLSearchParams(window.location.search).has('admin')) {
     show('admin');
 }
@@ -2719,6 +2722,7 @@ function renderizarLeccion(l) {
         const respuestasAbiertas = campos.map(c => c.value);
         // No perder un estudio completado por modificar un borrador.
         guardarProgresoLocalLeccion(l.numero, {...datos, respuestasAbiertas, completado: false});
+        programarSincronizacion(l.numero);
         if (aviso) aviso.textContent = 'Respuestas guardadas en este navegador. Finaliza el estudio cuando termines.';
     }
     l.preguntasBiblicas.forEach((p, i) => {
@@ -2763,6 +2767,7 @@ function renderizarLeccion(l) {
         if (!guardarProgresoLocalLeccion(l.numero, {...datos, respuestasAbiertas, completado: true})) return;
         aviso.textContent = '✅ ¡Estudio ' + l.numero + ' completado! ' + resumenProgresoCurso();
         actualizarProgresoCurso();
+        sincronizarEstudio(l.numero);
         if (siguiente) siguiente.disabled = false;
         renderizarListaLecciones();
     }));
@@ -2775,6 +2780,111 @@ function renderizarLeccion(l) {
         acciones.append(siguiente);
     }
     caja.append(acciones);
-    caja.append(elementoEstudio('small', 'Las respuestas se guardan solo en este navegador. Aún no se sincronizan con Supabase. El estudio se marca como completado al responder todas las preguntas, sin calificación automática.'));
+    caja.append(elementoEstudio('small', 'Las respuestas se guardan en este navegador. Con la sesión de estudiante activa, se sincronizan también con Supabase. Completar no equivale a una calificación automática.'));
 }
 document.addEventListener('DOMContentLoaded', renderizarListaLecciones);
+
+
+/* SINCRONIZACIÓN DE ESTUDIANTES: datos privados protegidos por RLS */
+let sincronizacionEnCurso = null;
+const pendientesSincronizacion = new Set();
+let temporizadorSincronizacion = null;
+function actualizarEstadoEstudiante(mensaje) {
+  const caja = document.getElementById('estadoEstudiante');
+  const registro = document.getElementById('registroEstudiante');
+  if (!caja) return;
+  const correo = sesionEstudiante?.usuario?.email;
+  caja.textContent = mensaje || (correo
+    ? '✓ Sesión de estudiante: ' + correo + '. Progreso sincronizado cuando hay conexión.'
+    : 'Estás estudiando como visitante. El progreso se guarda en este navegador. Inicia sesión para sincronizarlo.');
+  if (registro) registro.classList.toggle('hide', !!correo);
+}
+function datosLocalesEstudio(numero) {
+  if (numero === 1) return {
+    respuestas: Array.from({length:6},(_,i)=>localStorage.getItem('luzparatualma_estudio1_respuesta'+(i+1))||''),
+    completado: leccionCompletada(1)
+  };
+  const p = progresoLocalLeccion(numero);
+  return {respuestas: Array.isArray(p.respuestasAbiertas)?p.respuestasAbiertas:[], completado:!!p.completado};
+}
+function escribirDatosEstudio(numero, respuestas, completado) {
+  if (numero === 1) {
+    respuestas.forEach((r,i)=>{if(i<6)localStorage.setItem('luzparatualma_estudio1_respuesta'+(i+1),r);});
+    if (completado) localStorage.setItem('luzparatualma_estudio1_completado','true');
+    for(let i=1;i<=6;i++){const c=document.getElementById('respuesta'+i);if(c)c.value=localStorage.getItem('luzparatualma_estudio1_respuesta'+i)||'';}
+  } else {
+    const anterior = progresoLocalLeccion(numero);
+    guardarProgresoLocalLeccion(numero,{...anterior,respuestasAbiertas:respuestas,completado:!!completado});
+  }
+}
+async function peticionEstudiante(ruta,opciones={}) {
+  if (!sesionEstudiante?.access_token) throw Error('Inicia sesión para sincronizar.');
+  const ejecutar=()=>apiPublica(ruta,{...opciones,headers:{...opciones.headers,Authorization:'Bearer '+sesionEstudiante.access_token}});
+  try { return await ejecutar(); }
+  catch (error) {
+    if (!/401|JWT|expired|invalid/i.test(error.message)) throw error;
+    const refresh=sesionEstudiante.refresh_token;
+    if(!refresh)throw error;
+    const nueva=await apiPublica('/auth/v1/token?grant_type=refresh_token',{method:'POST',body:JSON.stringify({refresh_token:refresh})});
+    sesionEstudiante={...sesionEstudiante,access_token:nueva.access_token,refresh_token:nueva.refresh_token||refresh};
+    sessionStorage.setItem('luz_estudiante',JSON.stringify(sesionEstudiante));
+    return ejecutar();
+  }
+}
+function programarSincronizacion(numero) {
+  pendientesSincronizacion.add(numero);
+  if (!sesionEstudiante) return;
+  clearTimeout(temporizadorSincronizacion);
+  temporizadorSincronizacion=setTimeout(()=>{
+    const numeros=[...pendientesSincronizacion]; pendientesSincronizacion.clear();
+    numeros.forEach(n=>sincronizarEstudio(n));
+  },1300);
+}
+async function sincronizarEstudio(numero) {
+  if (!sesionEstudiante?.usuario?.id) return;
+  const datos=datosLocalesEstudio(numero);
+  try {
+    await peticionEstudiante('/rest/v1/progreso_estudiantes?on_conflict=usuario_id,leccion',{method:'POST',
+      headers:{Prefer:'resolution=merge-duplicates,return=minimal'},
+      body:JSON.stringify({usuario_id:sesionEstudiante.usuario.id,leccion:numero,respuestas:datos.respuestas,completado:datos.completado})});
+    actualizarEstadoEstudiante();
+  } catch(error) {
+    actualizarEstadoEstudiante('Guardado en este navegador. Sincronización pendiente: '+error.message);
+    console.warn('Error sincronizando estudio',numero,error);
+  }
+}
+async function iniciarSincronizacionEstudiante() {
+  if (!sesionEstudiante?.usuario?.id) { actualizarEstadoEstudiante(); return; }
+  if(sincronizacionEnCurso)return sincronizacionEnCurso;
+  sincronizacionEnCurso=(async()=>{
+    actualizarEstadoEstudiante('Conectando el progreso del estudiante...');
+    try {
+      // Verificar sesión antes de acceder a los datos privados.
+      const usuario=await peticionEstudiante('/auth/v1/user');
+      sesionEstudiante.usuario=usuario;
+      sessionStorage.setItem('luz_estudiante',JSON.stringify(sesionEstudiante));
+      const remotos=await peticionEstudiante('/rest/v1/progreso_estudiantes?select=leccion,respuestas,completado&order=leccion.asc');
+      for(let n=1;n<=20;n++){
+        const remoto=remotos.find(r=>r.leccion===n);
+        const local=datosLocalesEstudio(n);
+        if (!remoto) {
+          if(local.completado||local.respuestas.some(r=>r.trim())) await sincronizarEstudio(n);
+          continue;
+        }
+        // No descartar respuestas existentes: completar campos vacíos con las respuestas remotas.
+        const longitud=Math.max(local.respuestas.length,remoto.respuestas?.length||0);
+        const respuestas=Array.from({length:longitud},(_,i)=>local.respuestas[i]?.trim()?local.respuestas[i]:(remoto.respuestas?.[i]||''));
+        const completado=local.completado||remoto.completado;
+        escribirDatosEstudio(n,respuestas,completado);
+        if(JSON.stringify(respuestas)!==JSON.stringify(remoto.respuestas)||completado!==remoto.completado)await sincronizarEstudio(n);
+      }
+      actualizarProgresoCurso(); renderizarListaLecciones();
+      actualizarEstadoEstudiante();
+    } catch(error){
+      actualizarEstadoEstudiante('Progreso local disponible. No se pudo sincronizar: '+error.message);
+      console.error('Sincronización de estudiante',error);
+    }
+  })();
+  try{await sincronizacionEnCurso;}finally{sincronizacionEnCurso=null;}
+}
+document.addEventListener('DOMContentLoaded',actualizarEstadoEstudiante);
