@@ -187,7 +187,7 @@ function categoriaFiltro(nombre){
   if(['reflexion','reflexiones'].includes(normalizada))return 'reflexiones';
   return normalizada;
 }
-function render(){const target=$('cards');target.replaceChildren();const q=$('search').value.toLocaleLowerCase(),type=$('typeFilter').value;const found=items.filter(x=>(!type||categoriaFiltro(x.category)===categoriaFiltro(type))&&[x.title,x.ref,x.body].join(' ').toLocaleLowerCase().includes(q));for(const x of found){const c=text('div','');c.className='card';c.append(text('small',x.category+' · '+x.ref),text('h3',x.title));const b=text('button','Leer estudio');b.onclick=()=>read(x.id);c.append(b);target.append(c)}if(!found.length)target.append(text('p','No hay publicaciones que coincidan.'))}
+function render(){document.getElementById('reader')?.classList.add('hide');const target=$('cards');target.replaceChildren();const q=$('search').value.toLocaleLowerCase(),type=$('typeFilter').value;const found=items.filter(x=>(!type||categoriaFiltro(x.category)===categoriaFiltro(type))&&[x.title,x.ref,x.body].join(' ').toLocaleLowerCase().includes(q));for(const x of found){const c=text('div','');c.className='card';c.append(text('small',x.category+' · '+x.ref),text('h3',x.title));const b=text('button','Leer estudio');b.onclick=()=>read(x.id);c.append(b);target.append(c)}if(!found.length)target.append(text('p','No hay publicaciones que coincidan.'))}
 // Lector editorial seguro: interpreta Markdown básico sin insertar HTML de usuarios.
 function formatoInline(contenedor, cadena) {
   const partes = String(cadena).split(/(\*\*[^*\n]+\*\*)/g);
