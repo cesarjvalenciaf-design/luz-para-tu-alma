@@ -69,6 +69,28 @@
             padding: 11px 16px;
         }
 
+nav button {
+  background: linear-gradient(135deg, #176b54, #10513f);
+  color: white;
+  border: 1px solid #c5a45d;
+  border-radius: 16px;
+  font-size: 15px;
+  font-weight: 700;
+  padding: 14px 12px;
+  cursor: pointer;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.12);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+nav button:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 7px 16px rgba(0, 0, 0, 0.18);
+}
+
+nav button:active {
+  transform: scale(0.97);
+}
+
         main {
             max-width: 950px;
             margin: auto;
@@ -196,12 +218,13 @@
         <p>La Palabra de Dios, esperanza para cada día</p>
     </header>
     <nav>
-    <button onclick="show('inicio')">Inicio</button>
-    <button onclick="show('biblioteca')">Biblioteca</button>
-    <button onclick="show('oracion')">Oración</button>
-
+   
+<button onclick="show('inicio')">🏡 Inicio</button>
+<button onclick="show('biblioteca')">📚 Biblioteca</button>
+<button onclick="show('oracion')">🙏 Oración</button>
 <button onclick="show('escuela')">📖 Escuela Bíblica</button>
-<button onclick="show('musica')">🎵 Música</button>
+<button onclick="show('musica')">🎶 Música</button>
+
 </nav>
     <main>
 <section id="musica" class="hide">
