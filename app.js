@@ -292,35 +292,45 @@ async function loadCategories(){
   }
 }
 
+// Recupera inmediatamente las publicaciones locales, incluso sin red.
+function recuperarPublicacionesGuardadas() {
+  try {
+    const datos = JSON.parse(localStorage.getItem('luz-alma-publicaciones-v1') || '[]');
+    if (Array.isArray(datos) && datos.length) {
+      items = datos;
+      render();
+      return true;
+    }
+  } catch (error) {
+    console.warn('No se pudo leer la biblioteca guardada:', error);
+  }
+  return false;
+}
+
 async function loadPublic() {
   const CACHE_PUBLICACIONES = 'luz-alma-publicaciones-v1';
 
+  // No vaciar la biblioteca al perder la conexión.
+  if (!navigator.onLine) {
+    if (!items.length) recuperarPublicacionesGuardadas();
+    return;
+  }
+
   try {
     const posts = await api('/rest/v1/posts?select=id,title,bible_reference,content,category_id,summary,status,slug&status=eq.published&order=created_at.desc');
-
-    items = posts.map(mapPost);
-
-    try { localStorage.setItem(CACHE_PUBLICACIONES, JSON.stringify(items)); } catch (_) {}
-    render();
-
-  } catch (error) {
-    const guardados = localStorage.getItem(CACHE_PUBLICACIONES);
-
-    if (guardados) {
+    const nuevas = posts.map(mapPost);
+    items = nuevas;
+    if (nuevas.length) {
       try {
-        items = JSON.parse(guardados);
-        render();
-        console.log('Publicaciones cargadas sin conexión');
-      } catch (errorCache) {
-        console.error('Error al recuperar publicaciones:', errorCache);
-        items = [];
-        render();
+        localStorage.setItem(CACHE_PUBLICACIONES, JSON.stringify(nuevas));
+      } catch (error) {
+        console.warn('No se pudo actualizar la copia local:', error);
       }
-    } else {
-      items = [];
-      render();
-      console.warn('No hay publicaciones guardadas para consultar sin conexión');
     }
+    render();
+  } catch (error) {
+    console.warn('Sin conexión con publicaciones:', error);
+    if (!items.length) recuperarPublicacionesGuardadas();
   }
 }
 
@@ -459,9 +469,18 @@ show = function(id) {
 (async()=>{
   if (!configured) { message('Falta configurar la clave pública en config.js.'); return; }
   message('Cargando biblioteca...');
-  await loadCategories();
-  await loadPublic();
-  message(navigator.onLine ? 'Biblioteca cargada. Inicia sesión para administrar.' : 'Modo sin conexión: mostrando publicaciones guardadas.');
+  // La copia local se presenta antes de cualquier solicitud a Supabase.
+  recuperarPublicacionesGuardadas();
+  if (navigator.onLine) {
+    // Una solicitud lenta o fallida de categorías no debe bloquear la biblioteca.
+    await Promise.allSettled([loadCategories(), loadPublic()]);
+  } else {
+    try {
+      const guardadas = JSON.parse(localStorage.getItem('luz-alma-categorias-v1') || '[]');
+      categories = Array.isArray(guardadas) ? guardadas : [];
+    } catch (_) { categories = []; }
+  }
+  message(navigator.onLine ? 'Biblioteca disponible. Inicia sesión para administrar.' : 'Modo sin conexión: publicaciones guardadas.');
   try { session = JSON.parse(sessionStorage.getItem('luz_session') || 'null'); } catch (_) {}
   if (session && navigator.onLine) {
     try { await verifyAdmin(); } catch (error) { console.warn('No se pudo verificar la sesión:', error); }
