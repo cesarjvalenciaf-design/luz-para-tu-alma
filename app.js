@@ -352,43 +352,68 @@ function urlCancion(ruta) {
 async function cargarCanciones() {
   const contenedor = $('cancionesPublicadas');
   if (!contenedor || !configured) return;
-  try {
-    const respuesta = await fetch(cfg.url + '/storage/v1/object/list/' + BUCKET_MUSICA, {
-      method: 'POST',
-      headers: {apikey: cfg.publishableKey, 'Content-Type':'application/json'},
-      body: JSON.stringify({prefix:'',limit:100,offset:0,sortBy:{column:'created_at',order:'desc'}})
-    });
-    if (!respuesta.ok) throw Error('No se pudo consultar el listado de canciones (' + respuesta.status + ').');
-    const archivos = await respuesta.json();
+  const CLAVE_CANCIONES = 'luz-alma-canciones-v1';
+  const mostrar = (archivos) => {
     contenedor.replaceChildren();
-    for (const archivo of archivos) {
-      if (!archivo.name || !/\.mp3$/i.test(archivo.name) || archivo.name === 'Gracias Dios.mp3') continue;
-      const titulo = archivo.name.replace(/\.mp3$/i,'').replace(/^\d{13}-/,'').replace(/[-_]+/g,' ');
+    const canciones = archivos.filter(a => a && typeof a.name === 'string' && /\.mp3$/i.test(a.name) && a.name.toLowerCase() !== 'gracias dios.mp3');
+    if (!canciones.length) {
+      contenedor.append(text('p', 'No hay canciones adicionales disponibles.'));
+      return;
+    }
+    for (const archivo of canciones) {
+      const titulo = archivo.name.replace(/\.mp3$/i, '').replace(/^\d{13}-/, '').replace(/[-_]+/g, ' ');
       const bloque = document.createElement('div');
       bloque.style.marginTop = '20px';
-      const nombre = text('h3','🎵 ' + titulo);
+      const nombre = text('h3', '🎵 ' + titulo);
       const reproductor = document.createElement('audio');
       reproductor.controls = true;
       reproductor.preload = 'none';
       reproductor.style.cssText = 'width:100%;max-width:600px';
       reproductor.src = urlCancion(archivo.name);
-        
-reproductor.addEventListener('ended', () => {
-  const canciones = Array.from(document.querySelectorAll('#musica audio'));
-  const posicion = canciones.indexOf(reproductor);
-  const siguiente = canciones[posicion + 1] || canciones[0];
-
-  if (siguiente && siguiente !== reproductor) {
-    siguiente.play().catch(error => console.warn('Reproducción automática:', error));
-  }
-});
-
-      bloque.append(nombre,reproductor);
+      bloque.append(nombre, reproductor);
       contenedor.append(bloque);
     }
+  };
+  let guardadas = [];
+  try {
+    const valor = JSON.parse(localStorage.getItem(CLAVE_CANCIONES) || '[]');
+    if (Array.isArray(valor)) guardadas = valor;
+  } catch (error) { console.warn('Caché de canciones no disponible:', error); }
+  if (guardadas.length) mostrar(guardadas);
+  else contenedor.replaceChildren(text('p', 'Cargando canciones...'));
+
+  try {
+    const todos = [];
+    const pagina = 100;
+    for (let offset = 0; offset < 5000; offset += pagina) {
+      const respuesta = await fetch(cfg.url + '/storage/v1/object/list/' + BUCKET_MUSICA, {
+        method: 'POST',
+        headers: {
+          apikey: cfg.publishableKey,
+          Authorization: 'Bearer ' + cfg.publishableKey,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({prefix:'', limit:pagina, offset, sortBy:{column:'name',order:'asc'}})
+      });
+      if (!respuesta.ok) {
+        const detalle = await respuesta.text();
+        throw Error('Supabase Storage HTTP ' + respuesta.status + ': ' + detalle.slice(0,180));
+      }
+      const lote = await respuesta.json();
+      if (!Array.isArray(lote)) throw Error('La respuesta de Supabase no es una lista de archivos.');
+      todos.push(...lote);
+      if (lote.length < pagina) break;
+    }
+    // Nunca sustituir una biblioteca ya guardada por una lista vacía debido a una consulta incompleta.
+    if (todos.length || !guardadas.length) {
+      mostrar(todos);
+      try { localStorage.setItem(CLAVE_CANCIONES, JSON.stringify(todos)); } catch (_) {}
+    }
   } catch (error) {
-    console.warn('Listado de música:',error);
-    contenedor.replaceChildren(text('p','No se pudieron cargar las canciones adicionales.'));
+    console.error('Error al cargar canciones de Supabase:', error);
+    if (!guardadas.length) {
+      contenedor.replaceChildren(text('p', 'No se pudo consultar la música en Supabase. ' + error.message));
+    }
   }
 }
 async function subirCancion() {
@@ -426,29 +451,13 @@ async function subirCancion() {
 }
 
 function activarReproduccionContinua() {
-    
-document.addEventListener('DOMContentLoaded', () => {
-  const primeraCancion = document.querySelector('#musica audio');
-
-  if (primeraCancion) {
-    primeraCancion.addEventListener('ended', () => {
-      const canciones = document.querySelectorAll('#musica audio');
-      if (canciones.length > 1) {
-        canciones[1].currentTime = 0;
-        canciones[1].play().catch(console.warn);
-      }
-    });
-  }
-});
-
   const canciones = Array.from(document.querySelectorAll('#musica audio'));
-
   canciones.forEach((audio, indice) => {
     audio.onended = () => {
       const siguiente = canciones[(indice + 1) % canciones.length];
-      if (siguiente) {
+      if (siguiente && siguiente !== audio) {
         siguiente.currentTime = 0;
-        siguiente.play().catch(error => console.warn('No se pudo continuar:', error));
+        siguiente.play().catch(error => console.warn('Reproducción continua:', error));
       }
     };
   });
