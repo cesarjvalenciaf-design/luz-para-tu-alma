@@ -351,6 +351,27 @@ async function subirCancion() {
     estado.textContent = 'No se pudo publicar: ' + error.message;
   } finally { boton.disabled = false; }
 }
+
+function activarReproduccionContinua() {
+  const canciones = Array.from(document.querySelectorAll('#musica audio'));
+
+  canciones.forEach((audio, indice) => {
+    audio.onended = () => {
+      const siguiente = canciones[(indice + 1) % canciones.length];
+      if (siguiente) {
+        siguiente.currentTime = 0;
+        siguiente.play().catch(error => console.warn('No se pudo continuar:', error));
+      }
+    };
+  });
+}
+
+const cargarCancionesOriginal = cargarCanciones;
+cargarCanciones = async function() {
+  await cargarCancionesOriginal();
+  activarReproduccionContinua();
+};
+
 const mostrarSeccionMusicaOriginal = show;
 show = function(id) {
   mostrarSeccionMusicaOriginal(id);
