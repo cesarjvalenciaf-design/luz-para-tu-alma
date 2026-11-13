@@ -265,11 +265,87 @@ function resetForm(){editing=null;for(const id of ['title','ref','summary','body
 async function login(){if(!configured)return alert('Primero configura config.js');try{const s=await api('/auth/v1/token?grant_type=password',{method:'POST',body:JSON.stringify({email:$('email').value.trim(),password:$('password').value})});session=s;sessionStorage.setItem('luz_session',JSON.stringify(s));$('password').value='';await verifyAdmin();await loadPublic()}catch(e){session=null;admin=false;sessionStorage.removeItem('luz_session');alert('No se pudo iniciar sesión: '+e.message)}}
 async function verifyAdmin(){if(!session){admin=false;renderAdmin();return}try{const u=await api('/auth/v1/user');const rows=await api('/rest/v1/admins?select=user_id&user_id=eq.'+encodeURIComponent(u.id));admin=rows.length>0;message(admin?'Sesión de administrador activa.':'Esta cuenta no tiene permisos de administración.');renderAdmin()}catch(e){admin=false;message('No se pudo verificar el administrador: '+e.message);renderAdmin()}}
 async function logout(){try{await api('/auth/v1/logout',{method:'POST'})}catch{}session=null;admin=false;sessionStorage.removeItem('luz_session');resetForm();renderAdmin()}
-function renderAdmin(){ $('loginBox').classList.toggle('hide',admin);$('adminEditor').classList.toggle('hide',!admin);if(admin)loadAdmin().catch(e=>message('Error al consultar borradores: '+e.message))}
+function renderAdmin(){ $('adminMusica')?.classList.toggle('hide',!admin); $('loginBox').classList.toggle('hide',admin);$('adminEditor').classList.toggle('hide',!admin);if(admin)loadAdmin().catch(e=>message('Error al consultar borradores: '+e.message))}
 async function loadAdmin(){const rows=await api('/rest/v1/posts?select=id,title,bible_reference,content,category_id,summary,status,slug&order=created_at.desc');const list=$('adminList');list.replaceChildren();for(const raw of rows){const x=mapPost(raw),c=text('div','');c.className='card';c.style.marginTop='10px';c.append(text('b',x.title),text('p',x.category+' · '+x.status));const a=text('button','Editar');a.onclick=()=>{editing=x.id;$('title').value=x.title;$('ref').value=x.ref;$('body').value=x.body;$('summary').value=x.summary;$('status').value=x.status;$('category').value=x.category_id;window.scrollTo(0,0)};const b=text('button','Eliminar');b.className='danger';b.style.marginLeft='8px';b.onclick=async()=>{if(!confirm('¿Eliminar definitivamente este contenido?'))return;try{await api('/rest/v1/posts?id=eq.'+encodeURIComponent(x.id),{method:'DELETE'});await loadAdmin();await loadPublic()}catch(e){alert(e.message)}};c.append(a,b);list.append(c)}}
 function slugify(s){return s.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'').slice(0,65)}
 async function save(){if(!admin)return;const title=$('title').value.trim(),content=$('body').value.trim(),ref=$('ref').value.trim(),summary=$('summary').value.trim();if(!title||!content||!ref||!summary)return alert('Completa título, referencia, resumen y contenido.');const category_id=Number($('category').value);if(!category_id)return alert('Primero crea las categorías en Supabase.');const record={title,content,bible_reference:ref,summary,category_id,status:$('status').value,slug:slugify(title)+'-'+(editing?editing.slice(0,8):Date.now().toString(36))};try{if(editing){await api('/rest/v1/posts?id=eq.'+encodeURIComponent(editing),{method:'PATCH',headers:{Prefer:'return=minimal'},body:JSON.stringify(record)})}else{await api('/rest/v1/posts',{method:'POST',headers:{Prefer:'return=minimal'},body:JSON.stringify(record)})}resetForm();await loadAdmin();await loadPublic();alert('Contenido guardado en Supabase.')}catch(e){alert('No se pudo guardar: '+e.message)}}
 async function exportData(){if(!admin)return;try{const rows=await api('/rest/v1/posts?select=*&order=created_at.desc');const blob=new Blob([JSON.stringify({exportedAt:new Date().toISOString(),posts:rows},null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='luz-para-tu-alma-respaldo.json';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000)}catch(e){alert(e.message)}}
+// MUSICA PARA EL ALMA: listado publico y subida solo para administradores.
+const BUCKET_MUSICA = 'musica';
+function urlCancion(ruta) {
+  return cfg.url + '/storage/v1/object/public/' + BUCKET_MUSICA + '/' +
+    ruta.split('/').map(encodeURIComponent).join('/');
+}
+async function cargarCanciones() {
+  const contenedor = $('cancionesPublicadas');
+  if (!contenedor || !configured) return;
+  try {
+    const respuesta = await fetch(cfg.url + '/storage/v1/object/list/' + BUCKET_MUSICA, {
+      method: 'POST',
+      headers: {apikey: cfg.publishableKey, 'Content-Type':'application/json'},
+      body: JSON.stringify({prefix:'',limit:100,offset:0,sortBy:{column:'created_at',order:'desc'}})
+    });
+    if (!respuesta.ok) throw Error('No se pudo consultar el listado de canciones (' + respuesta.status + ').');
+    const archivos = await respuesta.json();
+    contenedor.replaceChildren();
+    for (const archivo of archivos) {
+      if (!archivo.name || !/\.mp3$/i.test(archivo.name) || archivo.name === 'Gracias Dios.mp3') continue;
+      const titulo = archivo.name.replace(/\.mp3$/i,'').replace(/^\d{13}-/,'').replace(/[-_]+/g,' ');
+      const bloque = document.createElement('div');
+      bloque.style.marginTop = '20px';
+      const nombre = text('h3','🎵 ' + titulo);
+      const reproductor = document.createElement('audio');
+      reproductor.controls = true;
+      reproductor.preload = 'none';
+      reproductor.style.cssText = 'width:100%;max-width:600px';
+      reproductor.src = urlCancion(archivo.name);
+      bloque.append(nombre,reproductor);
+      contenedor.append(bloque);
+    }
+  } catch (error) {
+    console.warn('Listado de música:',error);
+    contenedor.replaceChildren(text('p','No se pudieron cargar las canciones adicionales.'));
+  }
+}
+async function subirCancion() {
+  if (!admin || !session?.access_token) return alert('Inicia sesión como administrador.');
+  const titulo = $('tituloCancion')?.value.trim();
+  const archivo = $('archivoCancion')?.files?.[0];
+  const estado = $('estadoMusica');
+  const boton = $('botonSubirCancion');
+  if (!titulo || !archivo) return alert('Escribe el título y selecciona un MP3.');
+  if (!/\.mp3$/i.test(archivo.name) || (archivo.type && !['audio/mpeg','audio/mp3','audio/x-mpeg'].includes(archivo.type)))
+    return alert('Selecciona un archivo MP3 válido.');
+  if (archivo.size > 50 * 1024 * 1024) return alert('El MP3 supera 50 MB.');
+  const nombreSeguro = titulo.normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+    .replace(/[^a-zA-Z0-9 _-]/g,'').trim().replace(/\s+/g,'-').slice(0,90) || 'cancion';
+  const ruta = Date.now() + '-' + nombreSeguro + '.mp3';
+  boton.disabled = true;
+  estado.textContent = 'Subiendo canción...';
+  try {
+    const respuesta = await fetch(cfg.url + '/storage/v1/object/' + BUCKET_MUSICA + '/' + encodeURIComponent(ruta), {
+      method:'POST',
+      headers:{apikey:cfg.publishableKey,Authorization:'Bearer '+session.access_token,'Content-Type':'audio/mpeg','x-upsert':'false'},
+      body:archivo
+    });
+    if (!respuesta.ok) {
+      const detalle = await respuesta.text();
+      throw Error('Error ' + respuesta.status + ': ' + detalle.slice(0,250));
+    }
+    $('tituloCancion').value = '';
+    $('archivoCancion').value = '';
+    estado.textContent = 'Canción publicada correctamente.';
+    await cargarCanciones();
+  } catch (error) {
+    estado.textContent = 'No se pudo publicar: ' + error.message;
+  } finally { boton.disabled = false; }
+}
+const mostrarSeccionMusicaOriginal = show;
+show = function(id) {
+  mostrarSeccionMusicaOriginal(id);
+  if (id === 'musica') cargarCanciones();
+};
+
 (async()=>{if(!configured){message('Falta configurar la clave pública en config.js.');return}message('Conectando a Supabase...');try{await loadCategories();await loadPublic();message('Conectado a Supabase. Inicia sesión para administrar.');try{session=JSON.parse(sessionStorage.getItem('luz_session')||'null')}catch{}if(session)await verifyAdmin()}catch(e){message('Error de conexión: '+e.message);$('cards').replaceChildren(text('p','No se pudo cargar la biblioteca.'))}})();
 async function recuperarSesionEstudiante() {
     const datos = new URLSearchParams(window.location.hash.substring(1));

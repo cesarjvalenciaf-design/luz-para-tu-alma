@@ -1,3 +1,4 @@
+```
 <!doctype html>
 <html lang="es">
 
@@ -218,6 +219,7 @@
   Tu navegador no admite la reproducción de audio.
 </audio>
   
+  <div id="cancionesPublicadas" aria-live="polite"></div>
   </div>
 </section>
 
@@ -568,6 +570,7 @@
 <div id="adminTestimonios"></div>
 
             </div>
+            <div id="adminMusica" class="hide">
             <h2>🎵 Administrar música</h2>
 <div class="card">
   <p>Publica nuevas canciones para Música para el Alma.</p>
@@ -578,7 +581,9 @@
   <label for="archivoCancion">Archivo MP3</label>
   <input id="archivoCancion" type="file" accept=".mp3,audio/mpeg">
 
-  <div id="estadoMusica"></div>
+  <button type="button" id="botonSubirCancion" onclick="subirCancion()">Publicar canción</button>
+  <p id="estadoMusica" role="status"></p>
+</div>
 </div>
         </section>
     </main>
@@ -622,3 +627,4 @@
     <script src="config.js"></script>
     <script src="app.js"></script>
 </body>
+```
