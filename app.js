@@ -349,71 +349,123 @@ function urlCancion(ruta) {
   return cfg.url + '/storage/v1/object/public/' + BUCKET_MUSICA + '/' +
     ruta.split('/').map(encodeURIComponent).join('/');
 }
+// Catálogo persistente y audios descargables para reproducción sin conexión.
+const CLAVE_CANCIONES = 'luz-alma-canciones-v2';
+const CACHE_AUDIOS = 'luz-alma-musica-offline-v1';
+let generacionMusica = 0;
+
+async function guardarAudioSinConexion(ruta, boton, estado, reproductor) {
+  const url = urlCancion(ruta);
+  boton.disabled = true;
+  estado.textContent = 'Guardando canción...';
+  try {
+    if (!('caches' in window)) throw Error('Este navegador no admite almacenamiento de audio.');
+    const respuesta = await fetch(url, {cache:'no-store'});
+    if (!respuesta.ok) throw Error('No se pudo descargar el MP3 (HTTP ' + respuesta.status + ').');
+    const tipo = respuesta.headers.get('content-type') || '';
+    if (/text\/html|application\/json/i.test(tipo)) throw Error('El servidor no entregó un MP3.');
+    const archivo = await respuesta.blob();
+    if (!archivo.size || archivo.size < 1024) throw Error('El archivo recibido está vacío o incompleto.');
+    const cache = await caches.open(CACHE_AUDIOS);
+    await cache.put(url, new Response(archivo, {headers:{'Content-Type':'audio/mpeg'}}));
+    estado.textContent = '✓ Guardada para escuchar sin internet';
+    boton.textContent = 'Guardada sin conexión';
+    reproductor.src = URL.createObjectURL(archivo);
+    reproductor.load();
+  } catch(error) {
+    estado.textContent = 'No se pudo guardar: ' + error.message;
+    boton.disabled = false;
+  }
+}
+
 async function cargarCanciones() {
   const contenedor = $('cancionesPublicadas');
   if (!contenedor || !configured) return;
-  const CLAVE_CANCIONES = 'luz-alma-canciones-v1';
-  const mostrar = (archivos) => {
+  const generacion = ++generacionMusica;
+  let guardadas = [];
+  try {
+    const valor = JSON.parse(localStorage.getItem(CLAVE_CANCIONES) || localStorage.getItem('luz-alma-canciones-v1') || '[]');
+    if (Array.isArray(valor)) guardadas = valor;
+  } catch(error) { console.warn('Catálogo local:', error); }
+
+  async function mostrar(archivos) {
+    if (generacion !== generacionMusica) return;
     contenedor.replaceChildren();
     const canciones = archivos.filter(a => a && typeof a.name === 'string' && /\.mp3$/i.test(a.name) && a.name.toLowerCase() !== 'gracias dios.mp3');
     if (!canciones.length) {
-      contenedor.append(text('p', 'No hay canciones adicionales disponibles.'));
+      contenedor.append(text('p','Todavía no hay canciones adicionales guardadas en este dispositivo.'));
       return;
     }
+    const cache = 'caches' in window ? await caches.open(CACHE_AUDIOS).catch(()=>null) : null;
+    if (generacion !== generacionMusica) return;
     for (const archivo of canciones) {
-      const titulo = archivo.name.replace(/\.mp3$/i, '').replace(/^\d{13}-/, '').replace(/[-_]+/g, ' ');
+      const titulo = archivo.name.replace(/\.mp3$/i,'').replace(/^\d{13}-/,'').replace(/[-_]+/g,' ');
       const bloque = document.createElement('div');
       bloque.style.marginTop = '20px';
-      const nombre = text('h3', '🎵 ' + titulo);
-      const reproductor = document.createElement('audio');
-      reproductor.controls = true;
-      reproductor.preload = 'none';
-      reproductor.style.cssText = 'width:100%;max-width:600px';
-      reproductor.src = urlCancion(archivo.name);
-      bloque.append(nombre, reproductor);
+      const nombre = text('h3','🎵 ' + titulo);
+      const audio = document.createElement('audio');
+      audio.controls = true;
+      audio.preload = 'metadata';
+      audio.style.cssText = 'width:100%;max-width:600px';
+      const url = urlCancion(archivo.name);
+      const estado = text('small','');
+      estado.style.cssText = 'display:block;margin:6px 0;color:#315e4c';
+      const boton = text('button','Guardar para escuchar sin internet');
+      boton.type = 'button';
+      boton.className = 'secondary';
+      boton.style.cssText = 'margin-top:8px;font-size:0.85rem';
+      const almacenada = cache ? await cache.match(url).catch(()=>null) : null;
+      if (generacion !== generacionMusica) return;
+      if (almacenada) {
+        const blob = await almacenada.blob();
+        if (generacion !== generacionMusica) return;
+        audio.src = URL.createObjectURL(blob);
+        estado.textContent = '✓ Disponible sin internet';
+        boton.textContent = 'Guardada sin conexión';
+        boton.disabled = true;
+      } else {
+        audio.src = url;
+        estado.textContent = 'Necesita internet hasta que guardes esta canción';
+        boton.onclick = () => guardarAudioSinConexion(archivo.name,boton,estado,audio);
+      }
+      audio.addEventListener('error', () => {
+        if (!almacenada) estado.textContent = 'No se pudo abrir el audio. Comprueba la conexión y los permisos del archivo en Supabase.';
+      });
+      bloque.append(nombre,audio,estado,boton);
       contenedor.append(bloque);
     }
-  };
-  let guardadas = [];
-  try {
-    const valor = JSON.parse(localStorage.getItem(CLAVE_CANCIONES) || '[]');
-    if (Array.isArray(valor)) guardadas = valor;
-  } catch (error) { console.warn('Caché de canciones no disponible:', error); }
-  if (guardadas.length) mostrar(guardadas);
-  else contenedor.replaceChildren(text('p', 'Cargando canciones...'));
+    activarReproduccionContinua();
+  }
 
+  if (guardadas.length) await mostrar(guardadas);
+  else contenedor.replaceChildren(text('p','Cargando canciones...'));
+  if (!navigator.onLine) {
+    if (!guardadas.length) contenedor.replaceChildren(text('p','Conéctate una vez para cargar el catálogo y guardar las canciones.'));
+    return;
+  }
   try {
     const todos = [];
     const pagina = 100;
     for (let offset = 0; offset < 5000; offset += pagina) {
       const respuesta = await fetch(cfg.url + '/storage/v1/object/list/' + BUCKET_MUSICA, {
-        method: 'POST',
-        headers: {
-          apikey: cfg.publishableKey,
-          Authorization: 'Bearer ' + cfg.publishableKey,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({prefix:'', limit:pagina, offset, sortBy:{column:'name',order:'asc'}})
+        method:'POST',
+        headers:{apikey:cfg.publishableKey,Authorization:'Bearer '+cfg.publishableKey,'Content-Type':'application/json'},
+        body:JSON.stringify({prefix:'',limit:pagina,offset,sortBy:{column:'name',order:'asc'}})
       });
-      if (!respuesta.ok) {
-        const detalle = await respuesta.text();
-        throw Error('Supabase Storage HTTP ' + respuesta.status + ': ' + detalle.slice(0,180));
-      }
+      if (!respuesta.ok) throw Error('HTTP ' + respuesta.status);
       const lote = await respuesta.json();
-      if (!Array.isArray(lote)) throw Error('La respuesta de Supabase no es una lista de archivos.');
+      if (!Array.isArray(lote)) throw Error('Respuesta inesperada de Supabase.');
       todos.push(...lote);
       if (lote.length < pagina) break;
     }
-    // Nunca sustituir una biblioteca ya guardada por una lista vacía debido a una consulta incompleta.
-    if (todos.length || !guardadas.length) {
-      mostrar(todos);
-      try { localStorage.setItem(CLAVE_CANCIONES, JSON.stringify(todos)); } catch (_) {}
-    }
-  } catch (error) {
-    console.error('Error al cargar canciones de Supabase:', error);
-    if (!guardadas.length) {
-      contenedor.replaceChildren(text('p', 'No se pudo consultar la música en Supabase. ' + error.message));
-    }
+    if (generacion !== generacionMusica) return;
+    if (todos.length) {
+      try {localStorage.setItem(CLAVE_CANCIONES,JSON.stringify(todos));}catch(_){}
+      await mostrar(todos);
+    } else if (!guardadas.length) await mostrar([]);
+  } catch(error) {
+    console.warn('No se pudo actualizar el catálogo de música:',error);
+    if (!guardadas.length) contenedor.replaceChildren(text('p','No se pudo cargar el catálogo. Abre Música con conexión a internet.'));
   }
 }
 async function subirCancion() {
