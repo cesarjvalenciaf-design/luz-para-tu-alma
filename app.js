@@ -299,6 +299,17 @@ async function cargarCanciones() {
       reproductor.preload = 'none';
       reproductor.style.cssText = 'width:100%;max-width:600px';
       reproductor.src = urlCancion(archivo.name);
+        
+reproductor.addEventListener('ended', () => {
+  const canciones = Array.from(document.querySelectorAll('#musica audio'));
+  const posicion = canciones.indexOf(reproductor);
+  const siguiente = canciones[posicion + 1] || canciones[0];
+
+  if (siguiente && siguiente !== reproductor) {
+    siguiente.play().catch(error => console.warn('Reproducción automática:', error));
+  }
+});
+
       bloque.append(nombre,reproductor);
       contenedor.append(bloque);
     }
