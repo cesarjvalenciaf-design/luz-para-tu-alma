@@ -260,7 +260,39 @@ function read(id) {
 }
 function mapPost(x){return {id:x.id,title:x.title,ref:x.bible_reference||'',body:x.content,category:categories.find(c=>c.id===x.category_id)?.name||'Estudio',category_id:x.category_id,summary:x.summary||'',status:x.status,slug:x.slug}}
 async function loadCategories(){categories=await api('/rest/v1/categories?select=id,name&order=id.asc');const select=$('category');select.replaceChildren();for(const c of categories){const opt=document.createElement('option');opt.value=c.id;opt.textContent=c.name;select.append(opt)}}
-async function loadPublic(){const posts=await api('/rest/v1/posts?select=id,title,bible_reference,content,category_id,summary,status,slug&status=eq.published&order=created_at.desc');items=posts.map(mapPost);render()}
+
+async function loadPublic() {
+  const CACHE_PUBLICACIONES = 'luz-alma-publicaciones-v1';
+
+  try {
+    const posts = await api('/rest/v1/posts?select=id,title,bible_reference,content,category_id,summary,status,slug&status=eq.published&order=created_at.desc');
+
+    items = posts.map(mapPost);
+
+    localStorage.setItem(CACHE_PUBLICACIONES, JSON.stringify(items));
+    render();
+
+  } catch (error) {
+    const guardados = localStorage.getItem(CACHE_PUBLICACIONES);
+
+    if (guardados) {
+      try {
+        items = JSON.parse(guardados);
+        render();
+        console.log('Publicaciones cargadas sin conexión');
+      } catch (errorCache) {
+        console.error('Error al recuperar publicaciones:', errorCache);
+        items = [];
+        render();
+      }
+    } else {
+      items = [];
+      render();
+      console.warn('No hay publicaciones guardadas para consultar sin conexión');
+    }
+  }
+}
+
 function resetForm(){editing=null;for(const id of ['title','ref','summary','body'])$(id).value='';$('status').value='draft'}
 async function login(){if(!configured)return alert('Primero configura config.js');try{const s=await api('/auth/v1/token?grant_type=password',{method:'POST',body:JSON.stringify({email:$('email').value.trim(),password:$('password').value})});session=s;sessionStorage.setItem('luz_session',JSON.stringify(s));$('password').value='';await verifyAdmin();await loadPublic()}catch(e){session=null;admin=false;sessionStorage.removeItem('luz_session');alert('No se pudo iniciar sesión: '+e.message)}}
 async function verifyAdmin(){if(!session){admin=false;renderAdmin();return}try{const u=await api('/auth/v1/user');const rows=await api('/rest/v1/admins?select=user_id&user_id=eq.'+encodeURIComponent(u.id));admin=rows.length>0;message(admin?'Sesión de administrador activa.':'Esta cuenta no tiene permisos de administración.');renderAdmin()}catch(e){admin=false;message('No se pudo verificar el administrador: '+e.message);renderAdmin()}}
