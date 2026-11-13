@@ -353,6 +353,21 @@ async function subirCancion() {
 }
 
 function activarReproduccionContinua() {
+    
+document.addEventListener('DOMContentLoaded', () => {
+  const primeraCancion = document.querySelector('#musica audio');
+
+  if (primeraCancion) {
+    primeraCancion.addEventListener('ended', () => {
+      const canciones = document.querySelectorAll('#musica audio');
+      if (canciones.length > 1) {
+        canciones[1].currentTime = 0;
+        canciones[1].play().catch(console.warn);
+      }
+    });
+  }
+});
+
   const canciones = Array.from(document.querySelectorAll('#musica audio'));
 
   canciones.forEach((audio, indice) => {
