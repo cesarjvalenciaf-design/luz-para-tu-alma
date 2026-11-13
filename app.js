@@ -258,8 +258,39 @@ function read(id) {
   b.onclick = () => r.classList.add('hide');
   r.append(b); r.classList.remove('hide'); r.scrollIntoView({behavior:'smooth'});
 }
-function mapPost(x){return {id:x.id,title:x.title,ref:x.bible_reference||'',body:x.content,category:categories.find(c=>c.id===x.category_id)?.name||'Estudio',category_id:x.category_id,summary:x.summary||'',status:x.status,slug:x.slug}}
-async function loadCategories(){categories=await api('/rest/v1/categories?select=id,name&order=id.asc');const select=$('category');select.replaceChildren();for(const c of categories){const opt=document.createElement('option');opt.value=c.id;opt.textContent=c.name;select.append(opt)}}
+function mapPost(x){
+  const categoriaActual = categories.find(c => String(c.id) === String(x.category_id))?.name;
+  let categoriaGuardada = '';
+  if (!categoriaActual) {
+    try {
+      const previos = JSON.parse(localStorage.getItem('luz-alma-publicaciones-v1') || '[]');
+      categoriaGuardada = previos.find(p => String(p.category_id) === String(x.category_id))?.category || '';
+    } catch (_) {}
+  }
+  return {id:x.id,title:x.title,ref:x.bible_reference||'',body:x.content,category:categoriaActual||categoriaGuardada||'Estudio',category_id:x.category_id,summary:x.summary||'',status:x.status,slug:x.slug};
+}
+async function loadCategories(){
+  const CLAVE_CATEGORIAS = 'luz-alma-categorias-v1';
+  try {
+    categories = await api('/rest/v1/categories?select=id,name&order=id.asc');
+    try { localStorage.setItem(CLAVE_CATEGORIAS, JSON.stringify(categories)); } catch (_) {}
+  } catch (error) {
+    try {
+      const guardadas = JSON.parse(localStorage.getItem(CLAVE_CATEGORIAS) || '[]');
+      categories = Array.isArray(guardadas) ? guardadas : [];
+    } catch (_) { categories = []; }
+    console.warn('Categorías no disponibles en línea; usando las guardadas:', error);
+  }
+  const select = $('category');
+  if (!select) return;
+  select.replaceChildren();
+  for (const c of categories) {
+    const opt = document.createElement('option');
+    opt.value = c.id;
+    opt.textContent = c.name;
+    select.append(opt);
+  }
+}
 
 async function loadPublic() {
   const CACHE_PUBLICACIONES = 'luz-alma-publicaciones-v1';
@@ -269,7 +300,7 @@ async function loadPublic() {
 
     items = posts.map(mapPost);
 
-    localStorage.setItem(CACHE_PUBLICACIONES, JSON.stringify(items));
+    try { localStorage.setItem(CACHE_PUBLICACIONES, JSON.stringify(items)); } catch (_) {}
     render();
 
   } catch (error) {
@@ -425,7 +456,17 @@ show = function(id) {
   if (id === 'musica') cargarCanciones();
 };
 
-(async()=>{if(!configured){message('Falta configurar la clave pública en config.js.');return}message('Conectando a Supabase...');try{await loadCategories();await loadPublic();message('Conectado a Supabase. Inicia sesión para administrar.');try{session=JSON.parse(sessionStorage.getItem('luz_session')||'null')}catch{}if(session)await verifyAdmin()}catch(e){message('Error de conexión: '+e.message);$('cards').replaceChildren(text('p','No se pudo cargar la biblioteca.'))}})();
+(async()=>{
+  if (!configured) { message('Falta configurar la clave pública en config.js.'); return; }
+  message('Cargando biblioteca...');
+  await loadCategories();
+  await loadPublic();
+  message(navigator.onLine ? 'Biblioteca cargada. Inicia sesión para administrar.' : 'Modo sin conexión: mostrando publicaciones guardadas.');
+  try { session = JSON.parse(sessionStorage.getItem('luz_session') || 'null'); } catch (_) {}
+  if (session && navigator.onLine) {
+    try { await verifyAdmin(); } catch (error) { console.warn('No se pudo verificar la sesión:', error); }
+  }
+})();
 async function recuperarSesionEstudiante() {
     const datos = new URLSearchParams(window.location.hash.substring(1));
 
