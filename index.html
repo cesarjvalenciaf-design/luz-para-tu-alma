@@ -653,5 +653,16 @@ nav button:active {
     <footer>© 2026 Luz para tu Alma | Compartiendo esperanza y la Palabra de Dios</footer>
     <script src="config.js"></script>
     <script src="app.js"></script>
+    
+<script>
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('./sw.js')
+        .then(() => console.log('Modo sin conexión registrado'))
+        .catch(error => console.error('Error al activar modo sin conexión:', error));
+    });
+  }
+</script>
+
 </body>
 ```
