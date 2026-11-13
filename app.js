@@ -357,7 +357,8 @@ let generacionMusica = 0;
 async function guardarAudioSinConexion(ruta, boton, estado, reproductor) {
   const url = urlCancion(ruta);
   boton.disabled = true;
-  estado.textContent = 'Guardando canción...';
+  estado.textContent = '';
+  boton.textContent = '…';
   try {
     if (!('caches' in window)) throw Error('Este navegador no admite almacenamiento de audio.');
     const respuesta = await fetch(url, {cache:'no-store'});
@@ -368,13 +369,15 @@ async function guardarAudioSinConexion(ruta, boton, estado, reproductor) {
     if (!archivo.size || archivo.size < 1024) throw Error('El archivo recibido está vacío o incompleto.');
     const cache = await caches.open(CACHE_AUDIOS);
     await cache.put(url, new Response(archivo, {headers:{'Content-Type':'audio/mpeg'}}));
-    estado.textContent = '✓ Guardada para escuchar sin internet';
-    boton.textContent = 'Guardada sin conexión';
+    estado.textContent = '';
+    boton.textContent = '✓';
+    boton.title = 'Guardada para escuchar sin internet';
     reproductor.src = URL.createObjectURL(archivo);
     reproductor.load();
   } catch(error) {
     estado.textContent = 'No se pudo guardar: ' + error.message;
     boton.disabled = false;
+    boton.textContent = '⬇';
   }
 }
 
@@ -410,22 +413,25 @@ async function cargarCanciones() {
       const url = urlCancion(archivo.name);
       const estado = text('small','');
       estado.style.cssText = 'display:block;margin:6px 0;color:#315e4c';
-      const boton = text('button','Guardar para escuchar sin internet');
+      const boton = text('button','⬇');
+      boton.title = 'Descargar para escuchar sin internet';
+      boton.setAttribute('aria-label','Descargar ' + titulo + ' para escuchar sin internet');
       boton.type = 'button';
       boton.className = 'secondary';
-      boton.style.cssText = 'margin-top:8px;font-size:0.85rem';
+      boton.style.cssText = 'margin:4px 0 0 0;padding:5px 10px;font-size:1.1rem;line-height:1.2;min-width:36px';
       const almacenada = cache ? await cache.match(url).catch(()=>null) : null;
       if (generacion !== generacionMusica) return;
       if (almacenada) {
         const blob = await almacenada.blob();
         if (generacion !== generacionMusica) return;
         audio.src = URL.createObjectURL(blob);
-        estado.textContent = '✓ Disponible sin internet';
-        boton.textContent = 'Guardada sin conexión';
+        estado.textContent = '';
+        boton.textContent = '✓';
+    boton.title = 'Guardada para escuchar sin internet';
         boton.disabled = true;
       } else {
         audio.src = url;
-        estado.textContent = 'Necesita internet hasta que guardes esta canción';
+        estado.textContent = '';
         boton.onclick = () => guardarAudioSinConexion(archivo.name,boton,estado,audio);
       }
       audio.addEventListener('error', () => {
