@@ -257,6 +257,8 @@ function read(id) {
   const b = text('button', 'Cerrar lectura'); b.className = 'secondary lectura-cerrar';
   b.onclick = () => r.classList.add('hide');
   r.append(b); r.classList.remove('hide'); r.scrollIntoView({behavior:'smooth'});
+  registrarActividad('lectura', x.id, x.title);
+  agregarReacciones(r, x);
 }
 function mapPost(x){
   const categoriaActual = categories.find(c => String(c.id) === String(x.category_id))?.name;
@@ -338,7 +340,7 @@ function resetForm(){editing=null;for(const id of ['title','ref','summary','body
 async function login(){if(!configured)return alert('Primero configura config.js');try{const s=await api('/auth/v1/token?grant_type=password',{method:'POST',body:JSON.stringify({email:$('email').value.trim(),password:$('password').value})});session=s;sessionStorage.setItem('luz_session',JSON.stringify(s));$('password').value='';await verifyAdmin();await loadPublic()}catch(e){session=null;admin=false;sessionStorage.removeItem('luz_session');alert('No se pudo iniciar sesión: '+e.message)}}
 async function verifyAdmin(){if(!session){admin=false;renderAdmin();return}try{const u=await api('/auth/v1/user');const rows=await api('/rest/v1/admins?select=user_id&user_id=eq.'+encodeURIComponent(u.id));admin=rows.length>0;message(admin?'Sesión de administrador activa.':'Esta cuenta no tiene permisos de administración.');renderAdmin()}catch(e){admin=false;message('No se pudo verificar el administrador: '+e.message);renderAdmin()}}
 async function logout(){try{await api('/auth/v1/logout',{method:'POST'})}catch{}session=null;admin=false;sessionStorage.removeItem('luz_session');resetForm();renderAdmin()}
-function renderAdmin(){ $('adminMusica')?.classList.toggle('hide',!admin); $('loginBox').classList.toggle('hide',admin);$('adminEditor').classList.toggle('hide',!admin);if(admin)loadAdmin().catch(e=>message('Error al consultar borradores: '+e.message))}
+function renderAdmin(){ if(admin) cargarPanelActividad(); $('adminMusica')?.classList.toggle('hide',!admin); $('loginBox').classList.toggle('hide',admin);$('adminEditor').classList.toggle('hide',!admin);if(admin)loadAdmin().catch(e=>message('Error al consultar borradores: '+e.message))}
 async function loadAdmin(){const rows=await api('/rest/v1/posts?select=id,title,bible_reference,content,category_id,summary,status,slug&order=created_at.desc');const list=$('adminList');list.replaceChildren();for(const raw of rows){const x=mapPost(raw),c=text('div','');c.className='card';c.style.marginTop='10px';c.append(text('b',x.title),text('p',x.category+' · '+x.status));const a=text('button','Editar');a.onclick=()=>{editing=x.id;$('title').value=x.title;$('ref').value=x.ref;$('body').value=x.body;$('summary').value=x.summary;$('status').value=x.status;$('category').value=x.category_id;window.scrollTo(0,0)};const b=text('button','Eliminar');b.className='danger';b.style.marginLeft='8px';b.onclick=async()=>{if(!confirm('¿Eliminar definitivamente este contenido?'))return;try{await api('/rest/v1/posts?id=eq.'+encodeURIComponent(x.id),{method:'DELETE'});await loadAdmin();await loadPublic()}catch(e){alert(e.message)}};c.append(a,b);list.append(c)}}
 function slugify(s){return s.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'').slice(0,65)}
 async function save(){if(!admin)return;const title=$('title').value.trim(),content=$('body').value.trim(),ref=$('ref').value.trim(),summary=$('summary').value.trim();if(!title||!content||!ref||!summary)return alert('Completa título, referencia, resumen y contenido.');const category_id=Number($('category').value);if(!category_id)return alert('Primero crea las categorías en Supabase.');const record={title,content,bible_reference:ref,summary,category_id,status:$('status').value,slug:slugify(title)+'-'+(editing?editing.slice(0,8):Date.now().toString(36))};try{if(editing){await api('/rest/v1/posts?id=eq.'+encodeURIComponent(editing),{method:'PATCH',headers:{Prefer:'return=minimal'},body:JSON.stringify(record)})}else{await api('/rest/v1/posts',{method:'POST',headers:{Prefer:'return=minimal'},body:JSON.stringify(record)})}resetForm();await loadAdmin();await loadPublic();alert('Contenido guardado en Supabase.')}catch(e){alert('No se pudo guardar: '+e.message)}}
@@ -530,6 +532,7 @@ cargarCanciones = async function() {
 const mostrarSeccionMusicaOriginal = show;
 show = function(id) {
   mostrarSeccionMusicaOriginal(id);
+  if (['biblioteca','musica','escuela','oracion'].includes(id)) registrarActividad('seccion', null, id);
   if (id === 'musica') cargarCanciones();
 };
 
@@ -3288,3 +3291,76 @@ async function iniciarSincronizacionEstudiante() {
   try{await sincronizacionEnCurso;}finally{sincronizacionEnCurso=null;}
 }
 document.addEventListener('DOMContentLoaded',actualizarEstadoEstudiante);
+
+
+// Estadísticas: los eventos son anónimos; no se recogen IP ni huellas del dispositivo.
+const LUZ_ACTIVIDAD_SESION = (() => {
+  try {
+    let v = sessionStorage.getItem('luz-actividad-sesion');
+    if (!v) { v = crypto.randomUUID(); sessionStorage.setItem('luz-actividad-sesion', v); }
+    return v;
+  } catch (_) { return crypto.randomUUID(); }
+})();
+async function registrarActividad(tipo, publicacionId = null, titulo = '') {
+  if (!configured || !navigator.onLine) return;
+  try {
+    await apiPublica('/rest/v1/actividad_visitas', {
+      method: 'POST',
+      headers: { Prefer: 'return=minimal' },
+      body: JSON.stringify({ tipo, publicacion_id: publicacionId, titulo: String(titulo).slice(0,180), sesion: LUZ_ACTIVIDAD_SESION })
+    });
+  } catch (e) { console.debug('Estadísticas no disponibles:', e.message); }
+}
+async function agregarReacciones(lector, publicacion) {
+  const area = document.createElement('div');
+  area.className = 'luz-reacciones';
+  const titulo = text('p', '¿Te ayudó esta lectura?');
+  area.append(titulo);
+  for (const [tipo, etiqueta] of [['me_gusta','❤️ Me gusta'],['amen','🙏 Amén']]) {
+    const boton = text('button', etiqueta);
+    boton.type = 'button'; boton.className = 'secondary';
+    boton.onclick = async () => {
+      boton.disabled = true;
+      try {
+        await apiPublica('/rest/v1/actividad_visitas', {
+          method: 'POST', headers: { Prefer: 'return=minimal' },
+          body: JSON.stringify({ tipo, publicacion_id: publicacion.id, titulo: publicacion.title.slice(0,180), sesion: LUZ_ACTIVIDAD_SESION })
+        });
+        boton.textContent = etiqueta + ' ✓';
+      } catch (_) { boton.disabled = false; alert('No se pudo registrar la reacción. Intenta nuevamente.'); }
+    };
+    area.append(boton);
+  }
+  lector.append(area);
+}
+async function cargarPanelActividad() {
+  const panel = $('panelActividad');
+  if (!panel || !admin || !session) return;
+  panel.replaceChildren(text('p', 'Consultando estadísticas…'));
+  try {
+    const desde = new Date(Date.now()-30*86400000).toISOString();
+    const filas = await api('/rest/v1/actividad_visitas?select=tipo,titulo,sesion,created_at&created_at=gte.'+encodeURIComponent(desde)+'&order=created_at.desc&limit=5000');
+    const hoy = new Date().toISOString().slice(0,10);
+    const visitasHoy = filas.filter(x => x.tipo === 'visita' && x.created_at.slice(0,10) === hoy).length;
+    const sesiones = new Set(filas.filter(x => x.tipo === 'visita').map(x=>x.sesion)).size;
+    const lecturas = filas.filter(x => x.tipo === 'lectura').length;
+    const likes = filas.filter(x => x.tipo === 'me_gusta').length;
+    const amen = filas.filter(x => x.tipo === 'amen').length;
+    panel.replaceChildren();
+    const resumen = document.createElement('div'); resumen.className='luz-metricas';
+    for (const [numero, nombre] of [[visitasHoy,'Visitas hoy (UTC)'],[sesiones,'Sesiones en 30 días'],[lecturas,'Lecturas abiertas'],[likes,'❤️ Me gusta'],[amen,'🙏 Amén']]) {
+      const tarjeta = document.createElement('div'); tarjeta.className='luz-metrica';
+      tarjeta.append(text('strong',String(numero)),text('span',nombre)); resumen.append(tarjeta);
+    }
+    panel.append(resumen);
+    const contador = new Map();
+    for (const f of filas.filter(x=>x.tipo==='lectura')) contador.set(f.titulo,(contador.get(f.titulo)||0)+1);
+    panel.append(text('h4','Publicaciones más consultadas (últimos 30 días)'));
+    const lista = document.createElement('ol');
+    for (const [nombre,n] of [...contador.entries()].sort((a,b)=>b[1]-a[1]).slice(0,8)) lista.append(text('li',nombre+' — '+n+' aperturas'));
+    if (!lista.childElementCount) panel.append(text('p','Aún no hay lecturas registradas.'));
+    else panel.append(lista);
+    panel.append(text('small','Las visitas son aproximadas; no identifican personas ni garantizan que leyeron todo. Máximo 5000 eventos recientes.'));
+  } catch (e) { panel.replaceChildren(text('p','Para activar las estadísticas, ejecuta primero el archivo SQL en Supabase. Detalle: '+e.message)); }
+}
+window.addEventListener('load', () => registrarActividad('visita',null,'Inicio'));

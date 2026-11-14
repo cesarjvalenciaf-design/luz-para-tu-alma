@@ -543,6 +543,11 @@ nav button:active {
                     autocomplete="current-password"><button onclick="login()">Iniciar sesión</button>
             </div>
             <div id="adminEditor" class="hide">
+                <div class="card" style="margin-bottom:18px">
+                  <h3>📊 Actividad de Luz para tu Alma</h3>
+                  <button type="button" class="secondary" onclick="cargarPanelActividad()">Actualizar estadísticas</button>
+                  <div id="panelActividad" aria-live="polite"><p>Las estadísticas aparecerán aquí.</p></div>
+                </div>
                 <div class="actions"><button class="secondary" onclick="logout()">Cerrar sesión</button><button
                         class="secondary" onclick="exportData()">Exportar copia JSON</button></div>
                 <label>Título</label><input id="title" placeholder="Título del estudio"><label>Referencia
@@ -651,6 +656,15 @@ nav button:active {
 </section>
 
     <footer>© 2026 Luz para tu Alma | Compartiendo esperanza y la Palabra de Dios</footer>
+    <style>
+      .luz-reacciones {margin-top:22px;padding-top:15px;border-top:1px solid #d9dfd9;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+      .luz-reacciones p {width:100%;margin:0 0 4px;font-weight:600}
+      .luz-reacciones button {margin:0}
+      .luz-metricas {display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;margin:14px 0}
+      .luz-metrica {padding:13px;background:#f3f7f3;border-radius:12px;display:flex;flex-direction:column;gap:5px}
+      .luz-metrica strong {font-size:1.65rem;color:#174f3e}
+      .luz-metrica span {font-size:.85rem;color:#394e43}
+    </style>
     <script src="config.js"></script>
     <script src="app.js"></script>
     
