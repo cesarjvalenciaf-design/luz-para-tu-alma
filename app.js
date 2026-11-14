@@ -178,7 +178,7 @@ email_redirect_to: destino
     }
 }
 
-function show(id){document.querySelectorAll('main>section').forEach(s=>s.classList.toggle('hide',s.id!==id));if(id==='biblioteca')render();if(id==='admin')renderAdmin()}
+function show(id){document.querySelectorAll('main>section').forEach(s=>s.classList.toggle('hide',s.id!==id));if(id==='biblioteca')render();if(id==='reflexiones')cargarReflexiones();if(id==='admin')renderAdmin()}
 function filterType(t){show('biblioteca');$('typeFilter').value=t;render()}
 function categoriaFiltro(nombre){
   const normalizada=String(nombre||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim().toLowerCase();
@@ -341,7 +341,7 @@ function resetForm(){editing=null;for(const id of ['title','ref','summary','body
 async function login(){if(!configured)return alert('Primero configura config.js');try{const s=await api('/auth/v1/token?grant_type=password',{method:'POST',body:JSON.stringify({email:$('email').value.trim(),password:$('password').value})});session=s;sessionStorage.setItem('luz_session',JSON.stringify(s));$('password').value='';await verifyAdmin();await loadPublic()}catch(e){session=null;admin=false;sessionStorage.removeItem('luz_session');alert('No se pudo iniciar sesión: '+e.message)}}
 async function verifyAdmin(){if(!session){admin=false;renderAdmin();return}try{const u=await api('/auth/v1/user');const rows=await api('/rest/v1/admins?select=user_id&user_id=eq.'+encodeURIComponent(u.id));admin=rows.length>0;message(admin?'Sesión de administrador activa.':'Esta cuenta no tiene permisos de administración.');renderAdmin()}catch(e){admin=false;message('No se pudo verificar el administrador: '+e.message);renderAdmin()}}
 async function logout(){try{await api('/auth/v1/logout',{method:'POST'})}catch{}session=null;admin=false;sessionStorage.removeItem('luz_session');resetForm();renderAdmin()}
-function renderAdmin(){ if(admin) { cargarPanelActividad(); cargarSeguimientoBiblico(); } $('adminMusica')?.classList.toggle('hide',!admin); $('loginBox').classList.toggle('hide',admin);$('adminEditor').classList.toggle('hide',!admin);if(admin)loadAdmin().catch(e=>message('Error al consultar borradores: '+e.message))}
+function renderAdmin(){ if(admin) { cargarPanelActividad(); cargarSeguimientoBiblico(); cargarAdminReflexiones(); } $('adminMusica')?.classList.toggle('hide',!admin); $('loginBox').classList.toggle('hide',admin);$('adminEditor').classList.toggle('hide',!admin);if(admin)loadAdmin().catch(e=>message('Error al consultar borradores: '+e.message))}
 async function loadAdmin(){const rows=await api('/rest/v1/posts?select=id,title,bible_reference,content,category_id,summary,status,slug&order=created_at.desc');const list=$('adminList');list.replaceChildren();for(const raw of rows){const x=mapPost(raw),c=text('div','');c.className='card';c.style.marginTop='10px';c.append(text('b',x.title),text('p',x.category+' · '+x.status));const a=text('button','Editar');a.onclick=()=>{editing=x.id;$('title').value=x.title;$('ref').value=x.ref;$('body').value=x.body;$('summary').value=x.summary;$('status').value=x.status;$('category').value=x.category_id;window.scrollTo(0,0)};const b=text('button','Eliminar');b.className='danger';b.style.marginLeft='8px';b.onclick=async()=>{if(!confirm('¿Eliminar definitivamente este contenido?'))return;try{await api('/rest/v1/posts?id=eq.'+encodeURIComponent(x.id),{method:'DELETE'});await loadAdmin();await loadPublic()}catch(e){alert(e.message)}};c.append(a,b);list.append(c)}}
 function slugify(s){return s.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'').slice(0,65)}
 async function save(){if(!admin)return;const title=$('title').value.trim(),content=$('body').value.trim(),ref=$('ref').value.trim(),summary=$('summary').value.trim();if(!title||!content||!ref||!summary)return alert('Completa título, referencia, resumen y contenido.');const category_id=Number($('category').value);if(!category_id)return alert('Primero crea las categorías en Supabase.');const record={title,content,bible_reference:ref,summary,category_id,status:$('status').value,slug:slugify(title)+'-'+(editing?editing.slice(0,8):Date.now().toString(36))};try{if(editing){await api('/rest/v1/posts?id=eq.'+encodeURIComponent(editing),{method:'PATCH',headers:{Prefer:'return=minimal'},body:JSON.stringify(record)})}else{await api('/rest/v1/posts',{method:'POST',headers:{Prefer:'return=minimal'},body:JSON.stringify(record)})}resetForm();await loadAdmin();await loadPublic();alert('Contenido guardado en Supabase.')}catch(e){alert('No se pudo guardar: '+e.message)}}
@@ -3545,4 +3545,77 @@ async function cargarSeguimientoBiblico(){
       panel.append(card);
     }
   }catch(error){panel.replaceChildren(elementoEstudio('p','Para consultar estudiantes debes ejecutar el SQL de continuidad en Supabase. Detalle: '+error.message));}
+}
+
+
+// REFLEXIONES: catálogo inicial y publicaciones nuevas desde Supabase.
+const REFLEXIONES_INICIALES = [
+ {titulo:'En paz me acostaré',versiculo:'Salmos 4:8',descripcion:'Descansa en paz y confía en el cuidado de Dios.',enlace:'https://vt.tiktok.com/ZSpVfmyAm/',portada:''},
+ {titulo:'Dios está cerca de tu corazón quebrantado',versiculo:'Salmo 34:18',descripcion:'Cuando el corazón se quebranta, Dios no se aleja.',enlace:'https://vt.tiktok.com/ZSpVPSunR/',portada:''},
+ {titulo:'Esta oración cambiará tu día',versiculo:'Jeremías 33:3',descripcion:'Clama a Dios y confía en que escucha tu oración.',enlace:'https://vt.tiktok.com/ZSpVfwoWK/',portada:''}
+];
+function validarUrlTikTok(valor){
+ try {const u=new URL(String(valor||'').trim());return u.protocol==='https:' && (u.hostname==='tiktok.com'||u.hostname.endsWith('.tiktok.com'));}catch{return false;}
+}
+function validarPortada(valor){
+ if(!valor)return true;
+ try {const u=new URL(valor);return u.protocol==='https:';}catch{return false;}
+}
+function crearTarjetaReflexion(r){
+ const c=document.createElement('article');c.className='reflexion-card';
+ const cover=document.createElement('div');cover.className='reflexion-cover';
+ if(r.portada && validarPortada(r.portada)){
+  const img=document.createElement('img');img.src=r.portada;img.alt='Portada: '+r.titulo;img.loading='lazy';
+  img.onerror=()=>{cover.replaceChildren(text('span','🎬'));};cover.append(img);
+ }else cover.append(text('span','🎬'));
+ const info=document.createElement('div');info.className='reflexion-info';
+ info.append(text('h3',r.titulo));
+ if(r.versiculo){const v=text('strong','📖 '+r.versiculo);info.append(v);}
+ if(r.descripcion)info.append(text('p',r.descripcion));
+ const link=document.createElement('a');link.className='btn';link.href=r.enlace;link.target='_blank';link.rel='noopener noreferrer';link.textContent='▶ Ver en TikTok ↗';info.append(link);
+ c.append(cover,info);return c;
+}
+async function obtenerReflexiones(){
+ try {
+  const rows=await apiPublica('/rest/v1/reflexiones_tiktok?select=id,titulo,versiculo,descripcion,enlace,portada&publicado=eq.true&order=creado_en.desc');
+  return {rows:Array.isArray(rows)?rows:[],disponible:true};
+ }catch(e){console.warn('Reflexiones: tabla no disponible o sin conexión',e);return {rows:[],disponible:false};}
+}
+async function cargarReflexiones(){
+ const panel=$('listaReflexiones');if(!panel)return;
+ panel.replaceChildren(text('p','Cargando reflexiones…'));
+ const {rows}=await obtenerReflexiones();
+ panel.replaceChildren();
+ const unicas=new Map();
+ for(const r of [...rows,...REFLEXIONES_INICIALES]){
+  if(!validarUrlTikTok(r.enlace))continue;
+  const clave=new URL(r.enlace).pathname.replace(/\/$/,'').toLowerCase();
+  if(!unicas.has(clave))unicas.set(clave,r);
+ }
+ for(const r of unicas.values())panel.append(crearTarjetaReflexion(r));
+}
+async function guardarReflexion(){
+ const estado=$('refEstado');if(!admin||!session?.access_token)return;
+ const r={titulo:$('refTitulo').value.trim(),versiculo:$('refVersiculo').value.trim(),descripcion:$('refDescripcion').value.trim(),enlace:$('refEnlace').value.trim(),portada:$('refPortada').value.trim()||null,publicado:true};
+ if(!r.titulo||!validarUrlTikTok(r.enlace)){estado.textContent='Escribe un título y un enlace válido de TikTok (https).';return;}
+ if(!validarPortada(r.portada)){estado.textContent='La portada debe ser una dirección https válida.';return;}
+ estado.textContent='Publicando…';
+ try{
+  await api('/rest/v1/reflexiones_tiktok',{method:'POST',headers:{Prefer:'return=minimal'},body:JSON.stringify(r)});
+  for(const id of ['refTitulo','refVersiculo','refDescripcion','refEnlace','refPortada'])$(id).value='';
+  estado.textContent='Reflexión publicada correctamente.';await cargarAdminReflexiones();
+ }catch(e){estado.textContent='No se pudo publicar. Verifica que ejecutaste el SQL de reflexiones en Supabase. Detalle: '+e.message;}
+}
+async function eliminarReflexion(id){
+ if(!admin||!confirm('¿Eliminar esta reflexión de la galería?'))return;
+ try{await api('/rest/v1/reflexiones_tiktok?id=eq.'+encodeURIComponent(id),{method:'DELETE'});await cargarAdminReflexiones();}catch(e){alert('No se pudo eliminar: '+e.message);}
+}
+async function cargarAdminReflexiones(){
+ const panel=$('refAdminLista');if(!panel||!admin)return;
+ try{
+  const rows=await api('/rest/v1/reflexiones_tiktok?select=id,titulo,enlace&order=creado_en.desc');
+  panel.replaceChildren();
+  if(!rows.length)panel.append(text('p','Aún no hay reflexiones agregadas desde el panel. Las tres iniciales ya aparecen en la galería.'));
+  for(const r of rows){const d=document.createElement('div');d.className='reflexion-admin-item';d.append(text('strong',r.titulo+' '));const b=text('button','Eliminar');b.className='secondary';b.type='button';b.onclick=()=>eliminarReflexion(r.id);d.append(b);panel.append(d);}
+ }catch(e){panel.replaceChildren(text('p','Para publicar nuevas reflexiones, primero ejecuta el SQL incluido.'));}
 }
