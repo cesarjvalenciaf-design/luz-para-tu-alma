@@ -406,7 +406,7 @@ async function cargarCanciones() {
     for (const archivo of canciones) {
       const titulo = archivo.name.replace(/\.mp3$/i,'').replace(/^\d{13}-/,'').replace(/[-_]+/g,' ');
       const bloque = document.createElement('div');
-      bloque.style.marginTop = '20px';
+      bloque.className = 'musica-cancion';
       const nombre = text('h3','🎵 ' + titulo);
       const audio = document.createElement('audio');
       audio.controls = true;
@@ -440,7 +440,12 @@ async function cargarCanciones() {
         if (!almacenada) estado.textContent = 'No se pudo abrir el audio. Comprueba la conexión y los permisos del archivo en Supabase.';
       });
       instalarInteraccionMusical(audio, archivo.name, titulo, bloque);
-      bloque.append(nombre,audio,estado,boton);
+      const acciones = document.createElement('div'); acciones.className = 'musica-acciones';
+       // El botón de gusto ya fue añadido por instalarInteraccionMusical.
+       const gusto = bloque.querySelector('button[aria-label^="Me gusta:"]');
+       if (gusto) acciones.append(gusto);
+       acciones.append(boton);
+       bloque.append(nombre,audio,estado,acciones);
       contenedor.append(bloque);
     }
     activarReproduccionContinua();
@@ -3335,6 +3340,25 @@ function prepararCancionPrincipal() {
   contenedor.className = 'luz-interaccion-musica';
   audio.insertAdjacentElement('afterend',contenedor);
   instalarInteraccionMusical(audio,'Gracias Dios.mp3','Gracias Dios',contenedor);
+  const titulo = audio.previousElementSibling;
+  if (titulo && /^H[1-6]$/.test(titulo.tagName) && !audio.closest('.musica-cancion')) {
+    const tarjeta = document.createElement('div'); tarjeta.className = 'musica-cancion musica-destacada';
+    titulo.parentNode.insertBefore(tarjeta,titulo);
+    tarjeta.append(titulo,audio,contenedor);
+  }
+  // Evitar duplicar el botón antiguo que pudiera estar definido en index.html.
+  // Solo revisar los elementos posteriores al reproductor y anteriores a la siguiente canción.
+  let elemento = (audio.closest('.musica-cancion') || contenedor).nextElementSibling;
+  while (elemento && !/^(H[1-6]|AUDIO)$/.test(elemento.tagName)) {
+    const siguiente = elemento.nextElementSibling;
+    if (elemento.tagName === 'BUTTON' && /me gusta/i.test(elemento.textContent || '')) {
+      elemento.remove();
+    } else if (elemento.children.length === 1 && elemento.firstElementChild?.tagName === 'BUTTON' &&
+               /me gusta/i.test(elemento.firstElementChild.textContent || '')) {
+      elemento.remove();
+    }
+    elemento = siguiente;
+  }
 }
 document.addEventListener('DOMContentLoaded', prepararCancionPrincipal);
 

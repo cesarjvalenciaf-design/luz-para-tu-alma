@@ -208,7 +208,23 @@ nav button:active {
         .lectura-contenido li { margin-bottom: .6em; }
         #reader .lectura-cerrar { margin: 0 clamp(22px,5vw,52px) 32px; }
         @media(max-width:600px) { #reader.lector-revista { margin-left: -8px; margin-right: -8px; } .lectura-contenido { line-height: 1.8; } }
-    </style>
+    
+/* Presentación de Música para el Alma */
+#musica .musica-cabecera {background:linear-gradient(135deg,#123f34,#19634f);color:#fff;border-radius:20px;padding:25px 28px;margin:0 0 20px;box-shadow:0 8px 22px rgba(17,56,45,.13)}
+#musica .musica-cabecera h2 {color:#fff;margin:0 0 9px;font-size:clamp(1.55rem,3vw,2.15rem)}
+#musica .musica-cabecera p {color:#e6f2e9;margin:7px 0;line-height:1.55}
+#musica .musica-coleccion {border:1px solid #dce7df;border-radius:20px;background:#fbfcf9;padding:20px;box-shadow:0 4px 16px rgba(0,0,0,.035)}
+#musica .musica-coleccion > h3 {margin:0 0 16px;color:#164d3f}
+#musica .musica-cancion {background:#fff;border:1px solid #dce8e1;border-radius:17px;padding:19px 20px;margin:0 0 15px;box-shadow:0 3px 12px rgba(20,60,44,.045)}
+#musica .musica-cancion:last-child {margin-bottom:0}
+#musica .musica-cancion h3 {font-size:1.08rem;margin:0 0 14px;color:#163f35;line-height:1.4}
+#musica .musica-cancion audio {display:block;width:100%!important;max-width:none!important;margin:0 0 10px}
+#musica .musica-acciones {display:flex;flex-wrap:wrap;gap:9px;align-items:center;margin-top:8px}
+#musica .musica-acciones button,#musica .luz-interaccion-musica button {margin:0!important;border-radius:11px}
+#musica .musica-destacada {border-color:#d6b97a;background:linear-gradient(145deg,#fffef9,#fff)}
+#musica .musica-destacada::before {content:'CANCIÓN DESTACADA';display:block;color:#977127;letter-spacing:.09em;font-size:.7rem;font-weight:800;margin-bottom:10px}
+@media(max-width:600px){#musica .musica-cabecera{padding:20px}#musica .musica-coleccion{padding:12px}#musica .musica-cancion{padding:15px}}
+</style>
 </head>
 
 <body>
@@ -228,22 +244,19 @@ nav button:active {
 </nav>
     <main>
 <section id="musica" class="hide">
-  <h2>🎵 Música para el Alma</h2>
- <p>Melodías que inspiran, palabras que fortalecen y alabanzas que acercan el corazón a Dios.</p>
-<p><strong>Escucha, adora y permite que cada canción llene tu vida de esperanza.</strong></p>
-
-  <div class="card">
+  <div class="musica-cabecera">
+    <h2>🎵 Música para el Alma</h2>
+    <p>Melodías que inspiran, palabras que fortalecen y alabanzas que acercan el corazón a Dios.</p>
+    <p><strong>Escucha, adora y permite que cada canción llene tu vida de esperanza.</strong></p>
+  </div>
+  <div class="musica-coleccion">
     <h3>🎶 Nuestras canciones</h3>
-  
-
-
-<h3>🎵 Gracias Dios</h3>
-<audio controls preload="none" style="width:100%;max-width:600px;">
-  <source src="https://zfpjfpptghkyxpubhjji.supabase.co/storage/v1/object/public/musica/Gracias%20Dios.mp3" type="audio/mpeg">
-  Tu navegador no admite la reproducción de audio.
-</audio>
-  
-  <div id="cancionesPublicadas" aria-live="polite"></div>
+    <h3>🎵 Gracias Dios</h3>
+    <audio controls preload="none" style="width:100%;max-width:600px;">
+      <source src="https://zfpjfpptghkyxpubhjji.supabase.co/storage/v1/object/public/musica/Gracias%20Dios.mp3" type="audio/mpeg">
+      Tu navegador no admite la reproducción de audio.
+    </audio>
+    <div id="cancionesPublicadas" aria-live="polite"></div>
   </div>
 </section>
 
