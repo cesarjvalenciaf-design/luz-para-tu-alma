@@ -3550,15 +3550,16 @@ async function cargarSeguimientoBiblico(){
 
 // REFLEXIONES: catálogo inicial y publicaciones nuevas desde Supabase.
 const REFLEXIONES_INICIALES = [
- {titulo:'En paz me acostaré',versiculo:'Salmos 4:8',descripcion:'Descansa en paz y confía en el cuidado de Dios.',enlace:'https://vt.tiktok.com/ZSpVfmyAm/',portada:''},
- {titulo:'Dios está cerca de tu corazón quebrantado',versiculo:'Salmo 34:18',descripcion:'Cuando el corazón se quebranta, Dios no se aleja.',enlace:'https://vt.tiktok.com/ZSpVPSunR/',portada:''},
- {titulo:'Esta oración cambiará tu día',versiculo:'Jeremías 33:3',descripcion:'Clama a Dios y confía en que escucha tu oración.',enlace:'https://vt.tiktok.com/ZSpVfwoWK/',portada:''}
+ {titulo:'En paz me acostaré',versiculo:'Salmos 4:8',descripcion:'Descansa en paz y confía en el cuidado de Dios.',enlace:'https://vt.tiktok.com/ZSpVfmyAm/',portada:'reflexion-salmos-4-8.jpg'},
+ {titulo:'Dios está cerca de tu corazón quebrantado',versiculo:'Salmo 34:18',descripcion:'Cuando el corazón se quebranta, Dios no se aleja.',enlace:'https://vt.tiktok.com/ZSpVPSunR/',portada:'reflexion-salmo-34-18.jpg'},
+ {titulo:'Esta oración cambiará tu día',versiculo:'Jeremías 33:3',descripcion:'Clama a Dios y confía en que escucha tu oración.',enlace:'https://vt.tiktok.com/ZSpVfwoWK/',portada:'reflexion-jeremias-33-3.jpg'}
 ];
 function validarUrlTikTok(valor){
  try {const u=new URL(String(valor||'').trim());return u.protocol==='https:' && (u.hostname==='tiktok.com'||u.hostname.endsWith('.tiktok.com'));}catch{return false;}
 }
 function validarPortada(valor){
  if(!valor)return true;
+ if(['reflexion-salmos-4-8.jpg','reflexion-salmo-34-18.jpg','reflexion-jeremias-33-3.jpg'].includes(valor))return true;
  try {const u=new URL(valor);return u.protocol==='https:';}catch{return false;}
 }
 function crearTarjetaReflexion(r){
@@ -3592,7 +3593,10 @@ async function cargarReflexiones(){
   const clave=new URL(r.enlace).pathname.replace(/\/$/,'').toLowerCase();
   if(!unicas.has(clave))unicas.set(clave,r);
  }
- for(const r of unicas.values())panel.append(crearTarjetaReflexion(r));
+ for(const r of unicas.values()){
+  const base=REFLEXIONES_INICIALES.find(x=>x.enlace===r.enlace);
+  panel.append(crearTarjetaReflexion(base && !r.portada ? {...r,portada:base.portada} : r));
+ }
 }
 async function guardarReflexion(){
  const estado=$('refEstado');if(!admin||!session?.access_token)return;
