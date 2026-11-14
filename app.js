@@ -517,6 +517,22 @@ async function subirCancion() {
   } finally { boton.disabled = false; }
 }
 
+// Una sola canción a la vez: incluye la canción principal y las cargadas desde Supabase.
+// La captura en el contenedor funciona también con reproductores agregados después.
+function activarReproduccionExclusiva() {
+  const seccion = document.getElementById('musica');
+  if (!seccion || seccion.dataset.reproduccionExclusiva === '1') return;
+  seccion.dataset.reproduccionExclusiva = '1';
+  seccion.addEventListener('play', (evento) => {
+    const actual = evento.target;
+    if (!(actual instanceof HTMLMediaElement)) return;
+    seccion.querySelectorAll('audio, video').forEach((otro) => {
+      if (otro !== actual && !otro.paused) otro.pause();
+    });
+  }, true);
+}
+document.addEventListener('DOMContentLoaded', activarReproduccionExclusiva);
+
 function activarReproduccionContinua() {
   const canciones = Array.from(document.querySelectorAll('#musica audio'));
   canciones.forEach((audio, indice) => {
