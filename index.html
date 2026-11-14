@@ -302,6 +302,7 @@ nav button:active {
     
 <p id="progresoGeneralCurso" role="status">📘 Has completado 0 de 20 estudios (0 %).</p>
 <div id="listaLecciones" class="grid"></div>
+<div id="continuidadBiblica" class="card hide" style="margin-top:18px"></div>
 
   </div>
 </section>
@@ -560,6 +561,12 @@ nav button:active {
                   <h3>📊 Actividad de Luz para tu Alma</h3>
                   <button type="button" class="secondary" onclick="cargarPanelActividad()">Actualizar estadísticas</button>
                   <div id="panelActividad" aria-live="polite"><p>Las estadísticas aparecerán aquí.</p></div>
+                </div>
+                <div class="card" style="margin-bottom:18px">
+                  <h3>📖 Seguimiento de la Escuela Bíblica</h3>
+                  <p class="muted">Estudiantes inscritos, lecciones completadas y solicitudes voluntarias para recibir nuevos estudios digitales.</p>
+                  <button type="button" class="secondary" onclick="cargarSeguimientoBiblico()">Actualizar estudiantes</button>
+                  <div id="panelSeguimientoBiblico" aria-live="polite"><p>Consulta los estudiantes inscritos.</p></div>
                 </div>
                 <div class="actions"><button class="secondary" onclick="logout()">Cerrar sesión</button><button
                         class="secondary" onclick="exportData()">Exportar copia JSON</button></div>

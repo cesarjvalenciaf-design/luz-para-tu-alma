@@ -117,6 +117,7 @@ function actualizarProgresoCurso() {
     const resumen = resumenProgresoCurso();
     const general = document.getElementById('progresoGeneralCurso');
     if (general) general.textContent = '📘 ' + resumen;
+    if (typeof mostrarInvitacionContinuidad === 'function') mostrarInvitacionContinuidad();
     const primero = document.getElementById('progresoEstudio1');
     if (primero) primero.textContent = leccionCompletada(1)
         ? '✅ ¡Estudio 1 completado! ' + resumen
@@ -340,7 +341,7 @@ function resetForm(){editing=null;for(const id of ['title','ref','summary','body
 async function login(){if(!configured)return alert('Primero configura config.js');try{const s=await api('/auth/v1/token?grant_type=password',{method:'POST',body:JSON.stringify({email:$('email').value.trim(),password:$('password').value})});session=s;sessionStorage.setItem('luz_session',JSON.stringify(s));$('password').value='';await verifyAdmin();await loadPublic()}catch(e){session=null;admin=false;sessionStorage.removeItem('luz_session');alert('No se pudo iniciar sesión: '+e.message)}}
 async function verifyAdmin(){if(!session){admin=false;renderAdmin();return}try{const u=await api('/auth/v1/user');const rows=await api('/rest/v1/admins?select=user_id&user_id=eq.'+encodeURIComponent(u.id));admin=rows.length>0;message(admin?'Sesión de administrador activa.':'Esta cuenta no tiene permisos de administración.');renderAdmin()}catch(e){admin=false;message('No se pudo verificar el administrador: '+e.message);renderAdmin()}}
 async function logout(){try{await api('/auth/v1/logout',{method:'POST'})}catch{}session=null;admin=false;sessionStorage.removeItem('luz_session');resetForm();renderAdmin()}
-function renderAdmin(){ if(admin) cargarPanelActividad(); $('adminMusica')?.classList.toggle('hide',!admin); $('loginBox').classList.toggle('hide',admin);$('adminEditor').classList.toggle('hide',!admin);if(admin)loadAdmin().catch(e=>message('Error al consultar borradores: '+e.message))}
+function renderAdmin(){ if(admin) { cargarPanelActividad(); cargarSeguimientoBiblico(); } $('adminMusica')?.classList.toggle('hide',!admin); $('loginBox').classList.toggle('hide',admin);$('adminEditor').classList.toggle('hide',!admin);if(admin)loadAdmin().catch(e=>message('Error al consultar borradores: '+e.message))}
 async function loadAdmin(){const rows=await api('/rest/v1/posts?select=id,title,bible_reference,content,category_id,summary,status,slug&order=created_at.desc');const list=$('adminList');list.replaceChildren();for(const raw of rows){const x=mapPost(raw),c=text('div','');c.className='card';c.style.marginTop='10px';c.append(text('b',x.title),text('p',x.category+' · '+x.status));const a=text('button','Editar');a.onclick=()=>{editing=x.id;$('title').value=x.title;$('ref').value=x.ref;$('body').value=x.body;$('summary').value=x.summary;$('status').value=x.status;$('category').value=x.category_id;window.scrollTo(0,0)};const b=text('button','Eliminar');b.className='danger';b.style.marginLeft='8px';b.onclick=async()=>{if(!confirm('¿Eliminar definitivamente este contenido?'))return;try{await api('/rest/v1/posts?id=eq.'+encodeURIComponent(x.id),{method:'DELETE'});await loadAdmin();await loadPublic()}catch(e){alert(e.message)}};c.append(a,b);list.append(c)}}
 function slugify(s){return s.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'').slice(0,65)}
 async function save(){if(!admin)return;const title=$('title').value.trim(),content=$('body').value.trim(),ref=$('ref').value.trim(),summary=$('summary').value.trim();if(!title||!content||!ref||!summary)return alert('Completa título, referencia, resumen y contenido.');const category_id=Number($('category').value);if(!category_id)return alert('Primero crea las categorías en Supabase.');const record={title,content,bible_reference:ref,summary,category_id,status:$('status').value,slug:slugify(title)+'-'+(editing?editing.slice(0,8):Date.now().toString(36))};try{if(editing){await api('/rest/v1/posts?id=eq.'+encodeURIComponent(editing),{method:'PATCH',headers:{Prefer:'return=minimal'},body:JSON.stringify(record)})}else{await api('/rest/v1/posts',{method:'POST',headers:{Prefer:'return=minimal'},body:JSON.stringify(record)})}resetForm();await loadAdmin();await loadPublic();alert('Contenido guardado en Supabase.')}catch(e){alert('No se pudo guardar: '+e.message)}}
@@ -3449,3 +3450,83 @@ async function cargarPanelActividad() {
   } catch (e) { panel.replaceChildren(text('p','Para activar las estadísticas, ejecuta primero el archivo SQL en Supabase. Detalle: '+e.message)); }
 }
 window.addEventListener('load', () => registrarActividad('visita',null,'Inicio'));
+
+
+/* CONTINUIDAD BÍBLICA: invitación voluntaria tras las 20 lecciones.
+   El servidor vuelve a comprobar las 20 lecciones antes de aceptar solicitudes. */
+function mostrarInvitacionContinuidad() {
+  const caja = document.getElementById('continuidadBiblica');
+  if (!caja) return;
+  const terminado = totalLeccionesCompletadas() === 20;
+  caja.classList.toggle('hide', !terminado);
+  if (!terminado || caja.dataset.inicializada) return;
+  caja.dataset.inicializada = '1';
+  caja.append(elementoEstudio('h3','🎉 ¡Felicitaciones por completar las 20 lecciones!'));
+  caja.append(elementoEstudio('p','¿Te gustaría continuar estudiando la Palabra de Dios? Podemos enviarte estudios digitales personalizados por correo. Tú decides si deseas recibirlos.'));
+  const form = document.createElement('form');
+  const selector = document.createElement('select');
+  selector.required = true;
+  for (const [valor,etiqueta] of [
+    ['estudios','📖 Deseo recibir más estudios bíblicos digitales'],
+    ['preguntas','💬 Deseo hacer preguntas bíblicas por correo'],
+    ['ambos','🙏 Deseo estudios y acompañamiento espiritual por correo'],
+    ['no','Por ahora no deseo continuar']
+  ]) { const opt = document.createElement('option'); opt.value=valor; opt.textContent=etiqueta; selector.append(opt); }
+  const etiquetaOpcion = elementoEstudio('label','Elige cómo deseas continuar');
+  form.append(etiquetaOpcion,selector);
+  const etiquetaTemas = elementoEstudio('label','¿Qué temas te gustaría estudiar? (opcional)');
+  const temas = document.createElement('textarea'); temas.maxLength=500; temas.rows=3;
+  temas.placeholder='Por ejemplo: oración, familia, profecías, esperanza...';
+  form.append(etiquetaTemas,temas);
+  const consentimiento = document.createElement('label');
+  consentimiento.style.display='flex'; consentimiento.style.gap='10px'; consentimiento.style.alignItems='flex-start';
+  const aceptar = document.createElement('input'); aceptar.type='checkbox'; aceptar.style.width='auto';
+  consentimiento.append(aceptar,document.createTextNode('Autorizo el uso de mi correo y esta solicitud exclusivamente para recibir la respuesta o los estudios bíblicos que solicito. Puedo pedir que dejen de contactarme.'));
+  form.append(consentimiento);
+  const aviso = elementoEstudio('p','Para enviar la solicitud debes iniciar sesión como estudiante con tu correo.','muted');
+  const enviar = crearBotonEstudio('Enviar mi respuesta',()=>{}); enviar.type='submit';
+  form.append(enviar,aviso);
+  selector.addEventListener('change',()=>{const no=selector.value==='no'; consentimiento.classList.toggle('hide',no); etiquetaTemas.classList.toggle('hide',no); temas.classList.toggle('hide',no);});
+  form.addEventListener('submit',async event=>{
+    event.preventDefault();
+    if (!sesionEstudiante?.usuario?.id) {aviso.textContent='Primero inicia sesión como estudiante con tu correo para enviar la solicitud.'; return;}
+    if (selector.value !== 'no' && !aceptar.checked) {aviso.textContent='Para recibir nuevos estudios debes autorizar el contacto por correo.';return;}
+    enviar.disabled=true; aviso.textContent='Enviando tu respuesta…';
+    try {
+      await peticionEstudiante('/rest/v1/solicitudes_continuidad?on_conflict=usuario_id',{
+        method:'POST',headers:{Prefer:'resolution=merge-duplicates,return=minimal'},
+        body:JSON.stringify({usuario_id:sesionEstudiante.usuario.id,opcion:selector.value,temas:selector.value==='no'?'':temas.value.trim(),consentimiento:selector.value!=='no'&&aceptar.checked})
+      });
+      aviso.textContent=selector.value==='no'?'Gracias por estudiar con nosotros.':'¡Recibimos tu solicitud! Te contactaremos personalmente por correo.';
+    }catch(error){aviso.textContent='No se pudo enviar: '+error.message+'. Verifica que el SQL esté activado y que tus 20 lecciones estén sincronizadas.';}
+    finally{enviar.disabled=false;}
+  });
+  caja.append(form);
+}
+async function cargarSeguimientoBiblico(){
+  const panel=document.getElementById('panelSeguimientoBiblico');
+  if(!panel||!admin||!session)return;
+  panel.replaceChildren(elementoEstudio('p','Consultando estudiantes…'));
+  try{
+    const registros=await api('/rest/v1/rpc/panel_seguimiento_biblico',{method:'POST',body:'{}'});
+    panel.replaceChildren();
+    if(!registros?.length){panel.append(elementoEstudio('p','Todavía no hay estudiantes registrados.'));return;}
+    panel.append(elementoEstudio('p',registros.length+' estudiante(s) registrado(s).'));
+    for(const r of registros){
+      const card=elementoEstudio('div',undefined,'card');card.style.margin='10px 0';
+      card.append(elementoEstudio('strong',r.correo||'Correo no disponible'));
+      card.append(elementoEstudio('p',(r.lecciones_completadas||0)+' de 20 lecciones completadas'));
+      if(r.opcion){
+        const nombres={estudios:'Más estudios digitales',preguntas:'Preguntas por correo',ambos:'Estudios y acompañamiento',no:'No desea continuar'};
+        card.append(elementoEstudio('p','Solicitud: '+(nombres[r.opcion]||r.opcion)));
+        if(r.temas)card.append(elementoEstudio('p','Temas de interés: '+r.temas));
+        if(r.opcion!=='no'&&r.consentimiento){
+          const link=document.createElement('a');
+          link.href='mailto:'+r.correo+'?subject='+encodeURIComponent('Continuemos estudiando la Biblia — Luz para tu Alma');
+          link.textContent='✉️ Responder por correo';card.append(link);
+        }
+      }
+      panel.append(card);
+    }
+  }catch(error){panel.replaceChildren(elementoEstudio('p','Para consultar estudiantes debes ejecutar el SQL de continuidad en Supabase. Detalle: '+error.message));}
+}
