@@ -3598,17 +3598,45 @@ async function cargarReflexiones(){
   panel.append(crearTarjetaReflexion(base && !r.portada ? {...r,portada:base.portada} : r));
  }
 }
+// Portadas de reflexiones: solo administradores autenticados pueden subir imágenes.
+async function subirPortadaReflexion(archivo){
+ const tipos={'image/jpeg':'jpg','image/png':'png','image/webp':'webp'};
+ const extension=tipos[archivo.type];
+ if(!extension)throw Error('Selecciona una imagen JPG, PNG o WebP.');
+ if(archivo.size>5*1024*1024)throw Error('La imagen supera el límite de 5 MB.');
+ const nombre='portada-'+Date.now()+'-'+Math.random().toString(36).slice(2,10)+'.'+extension;
+ const respuesta=await fetch(cfg.url+'/storage/v1/object/portadas-reflexiones/'+nombre,{
+  method:'POST',
+  headers:{apikey:cfg.publishableKey,Authorization:'Bearer '+session.access_token,'Content-Type':archivo.type,'x-upsert':'false'},
+  body:archivo
+ });
+ if(!respuesta.ok){
+  const detalle=await respuesta.text();
+  throw Error('No se pudo subir la imagen (HTTP '+respuesta.status+'): '+detalle.slice(0,200));
+ }
+ return cfg.url+'/storage/v1/object/public/portadas-reflexiones/'+nombre;
+}
 async function guardarReflexion(){
- const estado=$('refEstado');if(!admin||!session?.access_token)return;
- const r={titulo:$('refTitulo').value.trim(),versiculo:$('refVersiculo').value.trim(),descripcion:$('refDescripcion').value.trim(),enlace:$('refEnlace').value.trim(),portada:$('refPortada').value.trim()||null,publicado:true};
+ const estado=$('refEstado');
+ if(!admin||!session?.access_token)return;
+ const archivo=$('refImagen')?.files?.[0];
+ const boton=document.querySelector('#adminReflexiones button[onclick="guardarReflexion()"]');
+ const r={titulo:$('refTitulo').value.trim(),versiculo:$('refVersiculo').value.trim(),descripcion:$('refDescripcion').value.trim(),enlace:$('refEnlace').value.trim(),portada:null,publicado:true};
  if(!r.titulo||!validarUrlTikTok(r.enlace)){estado.textContent='Escribe un título y un enlace válido de TikTok (https).';return;}
- if(!validarPortada(r.portada)){estado.textContent='La portada debe ser una dirección https válida.';return;}
- estado.textContent='Publicando…';
+ if(archivo && (!['image/jpeg','image/png','image/webp'].includes(archivo.type)||archivo.size>5*1024*1024)){
+  estado.textContent='Selecciona una imagen JPG, PNG o WebP de máximo 5 MB.';return;
+ }
+ if(boton)boton.disabled=true;
+ estado.textContent=archivo?'Subiendo imagen…':'Publicando…';
  try{
+  if(archivo)r.portada=await subirPortadaReflexion(archivo);
+  estado.textContent='Publicando reflexión…';
   await api('/rest/v1/reflexiones_tiktok',{method:'POST',headers:{Prefer:'return=minimal'},body:JSON.stringify(r)});
-  for(const id of ['refTitulo','refVersiculo','refDescripcion','refEnlace','refPortada'])$(id).value='';
-  estado.textContent='Reflexión publicada correctamente.';await cargarAdminReflexiones();
- }catch(e){estado.textContent='No se pudo publicar. Verifica que ejecutaste el SQL de reflexiones en Supabase. Detalle: '+e.message;}
+  for(const id of ['refTitulo','refVersiculo','refDescripcion','refEnlace','refImagen'])$(id).value='';
+  estado.textContent='Reflexión publicada correctamente.';
+  await cargarAdminReflexiones();
+ }catch(e){estado.textContent='No se pudo publicar: '+e.message;}
+ finally{if(boton)boton.disabled=false;}
 }
 async function eliminarReflexion(id){
  if(!admin||!confirm('¿Eliminar esta reflexión de la galería?'))return;

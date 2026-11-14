@@ -602,7 +602,9 @@ nav button:active {
  <label for="refVersiculo">Referencia bíblica</label><input id="refVersiculo" maxlength="90" placeholder="Ej. Jeremías 33:3">
  <label for="refDescripcion">Descripción breve</label><textarea id="refDescripcion" maxlength="350" style="min-height:85px" placeholder="Mensaje breve"></textarea>
  <label for="refEnlace">Enlace del video en TikTok</label><input id="refEnlace" type="url" placeholder="https://vt.tiktok.com/…">
- <label for="refPortada">Enlace de portada (opcional)</label><input id="refPortada" type="url" placeholder="https://…/imagen.jpg">
+ <label for="refImagen">Imagen de portada (opcional)</label>
+ <input id="refImagen" type="file" accept="image/jpeg,image/png,image/webp">
+ <p class="muted" style="margin-top:-7px">Selecciona una imagen de tu celular o computador (máximo 5 MB). No necesitas copiar ninguna dirección.</p>
  <button type="button" onclick="guardarReflexion()">Publicar reflexión</button>
  <p id="refEstado" role="status"></p><div id="refAdminLista"></div>
 </div>
