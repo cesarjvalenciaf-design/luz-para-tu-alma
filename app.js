@@ -439,6 +439,7 @@ async function cargarCanciones() {
       audio.addEventListener('error', () => {
         if (!almacenada) estado.textContent = 'No se pudo abrir el audio. Comprueba la conexión y los permisos del archivo en Supabase.';
       });
+      instalarInteraccionMusical(audio, archivo.name, titulo, bloque);
       bloque.append(nombre,audio,estado,boton);
       contenedor.append(bloque);
     }
@@ -3293,6 +3294,50 @@ async function iniciarSincronizacionEstudiante() {
 document.addEventListener('DOMContentLoaded',actualizarEstadoEstudiante);
 
 
+// Interacciones musicales: solo se registra el inicio de reproducción, no la escucha completa.
+// El botón de gusto se limita a una vez por canción en este navegador.
+function instalarInteraccionMusical(audio, ruta, titulo, bloque) {
+  if (!audio || audio.dataset.luzMusicaActividad) return;
+  audio.dataset.luzMusicaActividad = '1';
+  const clave = 'luz-musica-like-v1:' + ruta;
+  const boton = text('button', '♡ Me gusta');
+  boton.type = 'button';
+  boton.className = 'secondary';
+  boton.style.cssText = 'margin:4px 8px 0 0;padding:6px 12px;font-size:.9rem';
+  boton.setAttribute('aria-label','Me gusta: '+titulo);
+  const marcado = () => { boton.textContent = '❤️ Me gusta ✓'; boton.disabled = true; };
+  try { if (localStorage.getItem(clave)) marcado(); } catch (_) {}
+  boton.onclick = async () => {
+    boton.disabled = true;
+    try {
+      if (!navigator.onLine) throw Error('Sin conexión');
+      await apiPublica('/rest/v1/actividad_visitas', {
+        method:'POST',headers:{Prefer:'return=minimal'},
+        body:JSON.stringify({tipo:'musica_like',publicacion_id:null,titulo:titulo.slice(0,180),sesion:LUZ_ACTIVIDAD_SESION})
+      });
+      try { localStorage.setItem(clave,'1'); } catch (_) {}
+      marcado();
+    } catch (error) { boton.disabled = false; alert('No se pudo registrar el Me gusta. Intenta con conexión.'); }
+  };
+  bloque.append(boton);
+  let ultimoInicio = 0;
+  audio.addEventListener('play', () => {
+    const ahora = Date.now();
+    if (ahora - ultimoInicio < 30000) return;
+    ultimoInicio = ahora;
+    registrarActividad('musica_play',null,titulo);
+  });
+}
+function prepararCancionPrincipal() {
+  const audio = document.querySelector('#musica audio');
+  if (!audio || audio.dataset.luzMusicaActividad) return;
+  const contenedor = document.createElement('div');
+  contenedor.className = 'luz-interaccion-musica';
+  audio.insertAdjacentElement('afterend',contenedor);
+  instalarInteraccionMusical(audio,'Gracias Dios.mp3','Gracias Dios',contenedor);
+}
+document.addEventListener('DOMContentLoaded', prepararCancionPrincipal);
+
 // Estadísticas: los eventos son anónimos; no se recogen IP ni huellas del dispositivo.
 const LUZ_ACTIVIDAD_SESION = (() => {
   try {
@@ -3346,9 +3391,11 @@ async function cargarPanelActividad() {
     const lecturas = filas.filter(x => x.tipo === 'lectura').length;
     const likes = filas.filter(x => x.tipo === 'me_gusta').length;
     const amen = filas.filter(x => x.tipo === 'amen').length;
+    const escuchas = filas.filter(x => x.tipo === 'musica_play').length;
+    const gustosMusica = filas.filter(x => x.tipo === 'musica_like').length;
     panel.replaceChildren();
     const resumen = document.createElement('div'); resumen.className='luz-metricas';
-    for (const [numero, nombre] of [[visitasHoy,'Visitas hoy (UTC)'],[sesiones,'Sesiones en 30 días'],[lecturas,'Lecturas abiertas'],[likes,'❤️ Me gusta'],[amen,'🙏 Amén']]) {
+    for (const [numero, nombre] of [[visitasHoy,'Visitas hoy (UTC)'],[sesiones,'Sesiones en 30 días'],[lecturas,'Lecturas abiertas'],[likes,'❤️ Me gusta'],[amen,'🙏 Amén'],[escuchas,'▶️ Inicios de canciones'],[gustosMusica,'❤️ Me gusta en música']]) {
       const tarjeta = document.createElement('div'); tarjeta.className='luz-metrica';
       tarjeta.append(text('strong',String(numero)),text('span',nombre)); resumen.append(tarjeta);
     }
@@ -3360,6 +3407,20 @@ async function cargarPanelActividad() {
     for (const [nombre,n] of [...contador.entries()].sort((a,b)=>b[1]-a[1]).slice(0,8)) lista.append(text('li',nombre+' — '+n+' aperturas'));
     if (!lista.childElementCount) panel.append(text('p','Aún no hay lecturas registradas.'));
     else panel.append(lista);
+    const contadorMusica = new Map();
+    for (const f of filas.filter(x=>x.tipo==='musica_play')) contadorMusica.set(f.titulo,(contadorMusica.get(f.titulo)||0)+1);
+    panel.append(text('h4','Canciones más reproducidas (últimos 30 días)'));
+    const listaMusica = document.createElement('ol');
+    for (const [nombre,n] of [...contadorMusica.entries()].sort((a,b)=>b[1]-a[1]).slice(0,10)) listaMusica.append(text('li',nombre+' — '+n+' inicios'));
+    if (!listaMusica.childElementCount) panel.append(text('p','Aún no hay reproducciones registradas.'));
+    else panel.append(listaMusica);
+    const contadorLikesMusica = new Map();
+    for (const f of filas.filter(x=>x.tipo==='musica_like')) contadorLikesMusica.set(f.titulo,(contadorLikesMusica.get(f.titulo)||0)+1);
+    panel.append(text('h4','Canciones con más Me gusta'));
+    const listaLikesMusica = document.createElement('ol');
+    for (const [nombre,n] of [...contadorLikesMusica.entries()].sort((a,b)=>b[1]-a[1]).slice(0,10)) listaLikesMusica.append(text('li',nombre+' — '+n+' Me gusta'));
+    if (!listaLikesMusica.childElementCount) panel.append(text('p','Aún no hay reacciones musicales.'));
+    else panel.append(listaLikesMusica);
     panel.append(text('small','Las visitas son aproximadas; no identifican personas ni garantizan que leyeron todo. Máximo 5000 eventos recientes.'));
   } catch (e) { panel.replaceChildren(text('p','Para activar las estadísticas, ejecuta primero el archivo SQL en Supabase. Detalle: '+e.message)); }
 }
