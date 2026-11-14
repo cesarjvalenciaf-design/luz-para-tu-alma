@@ -233,6 +233,17 @@ nav button:active {
 #reflexiones .reflexion-info .btn{display:block;text-align:center;text-decoration:none;margin-top:auto}
 #reflexiones .reflexion-perfil{display:inline-block;background:#f4d998;color:#173a32;padding:10px 16px;border-radius:11px;text-decoration:none;font-weight:700}
 #adminReflexiones .reflexion-admin-item{border-top:1px solid #dce7df;padding:12px 0}
+
+        /* Acceso discreto a Administración */
+        #accesoAdministracion {
+            position: fixed; right: 18px; bottom: 18px; z-index: 1000;
+            width: 48px; height: 48px; padding: 0;
+            display: flex; align-items: center; justify-content: center;
+            border: 1px solid #d6b774; border-radius: 50%;
+            background: #175846; color: #fff; font-size: 23px;
+            box-shadow: 0 4px 14px rgba(0,0,0,.22);
+        }
+        #accesoAdministracion:focus-visible { outline: 3px solid #d6b774; outline-offset: 3px; }
 </style>
 </head>
 
@@ -702,6 +713,7 @@ nav button:active {
   </p>
 </section>
 
+    <button id="accesoAdministracion" type="button" aria-label="Abrir administración" title="Administración" onclick="show('admin')">⚙️</button>
     <footer>© 2026 Luz para tu Alma | Compartiendo esperanza y la Palabra de Dios</footer>
     <style>
       .luz-reacciones {margin-top:22px;padding-top:15px;border-top:1px solid #d9dfd9;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
