@@ -1,4 +1,4 @@
-
+```
 <!doctype html>
 <html lang="es">
 
@@ -202,21 +202,33 @@ nav button:active {
         #reader .lectura-cerrar { margin: 0 clamp(22px,5vw,52px) 32px; }
         @media(max-width:600px) { #reader.lector-revista { margin-left: -8px; margin-right: -8px; } .lectura-contenido { line-height: 1.8; } }
     
-/* Presentación de Música para el Alma */
-#musica .musica-cabecera {background:linear-gradient(135deg,#123f34,#19634f);color:#fff;border-radius:20px;padding:25px 28px;margin:0 0 20px;box-shadow:0 8px 22px rgba(17,56,45,.13)}
-#musica .musica-cabecera h2 {color:#fff;margin:0 0 9px;font-size:clamp(1.55rem,3vw,2.15rem)}
-#musica .musica-cabecera p {color:#e6f2e9;margin:7px 0;line-height:1.55}
-#musica .musica-coleccion {border:1px solid #dce7df;border-radius:20px;background:#fbfcf9;padding:20px;box-shadow:0 4px 16px rgba(0,0,0,.035)}
-#musica .musica-coleccion > h3 {margin:0 0 16px;color:#164d3f}
-#musica .musica-cancion {background:#fff;border:1px solid #dce8e1;border-radius:17px;padding:19px 20px;margin:0 0 15px;box-shadow:0 3px 12px rgba(20,60,44,.045)}
-#musica .musica-cancion:last-child {margin-bottom:0}
-#musica .musica-cancion h3 {font-size:1.08rem;margin:0 0 14px;color:#163f35;line-height:1.4}
-#musica .musica-cancion audio {display:block;width:100%!important;max-width:none!important;margin:0 0 10px}
-#musica .musica-acciones {display:flex;flex-wrap:wrap;gap:9px;align-items:center;margin-top:8px}
-#musica .musica-acciones button,#musica .luz-interaccion-musica button {margin:0!important;border-radius:11px}
-#musica .musica-destacada {border-color:#d6b97a;background:linear-gradient(145deg,#fffef9,#fff)}
-#musica .musica-destacada::before {content:'CANCIÓN DESTACADA';display:block;color:#977127;letter-spacing:.09em;font-size:.7rem;font-weight:800;margin-bottom:10px}
-@media(max-width:600px){#musica .musica-cabecera{padding:20px}#musica .musica-coleccion{padding:12px}#musica .musica-cancion{padding:15px}}
+/* Música para el Alma — rediseño visual, sin cambios en funciones */
+#musica{--music-ink:#143b32;--music-gold:#d5b577;--music-muted:#60776c}
+#musica .musica-cabecera{position:relative;overflow:hidden;background:radial-gradient(circle at 92% 12%,rgba(220,190,123,.23),transparent 29%),linear-gradient(135deg,#102f2a 0%,#165341 58%,#21705a 100%);color:white;border:1px solid rgba(213,181,119,.45);border-radius:24px;padding:clamp(26px,5vw,46px);margin:8px 0 22px;box-shadow:0 14px 32px rgba(16,53,42,.16)}
+#musica .musica-cabecera::after{content:'♫';position:absolute;right:24px;bottom:-55px;font-size:210px;line-height:1;color:rgba(255,255,255,.065);pointer-events:none}
+#musica .musica-cabecera::before{content:'ADORACIÓN • ESPERANZA • FE';display:inline-block;position:relative;z-index:1;color:#f0d9a5;font-size:.73rem;font-weight:800;letter-spacing:.16em;margin-bottom:13px}
+#musica .musica-cabecera h2{position:relative;z-index:1;color:white;font-family:Georgia,'Times New Roman',serif;font-size:clamp(2rem,5vw,3.05rem);line-height:1.15;margin:0 0 17px;letter-spacing:-.025em}
+#musica .musica-cabecera p{position:relative;z-index:1;color:#e9f2eb;margin:9px 0;line-height:1.7;max-width:62ch;font-size:1.04rem}
+#musica .musica-cabecera p strong{color:#f7dfa9;font-weight:650}
+#musica .musica-coleccion{border:1px solid #e0e7dd;border-radius:23px;background:linear-gradient(180deg,#fcfdf9,#f7faf6);padding:clamp(15px,3.5vw,28px);box-shadow:0 8px 28px rgba(20,60,44,.055)}
+#musica .musica-coleccion>h3:first-child{display:flex;align-items:center;gap:10px;font-family:Georgia,'Times New Roman',serif;font-size:1.5rem;color:var(--music-ink);margin:0 0 22px;padding-bottom:15px;border-bottom:1px solid #e1e9df}
+#musica .musica-coleccion>h3:not(:first-child){margin:0;padding:21px 23px 0;border:1px solid #e3d7b8;border-bottom:0;border-radius:18px 18px 0 0;background:#fffdf7;color:#24483a;font-size:1.12rem}
+#musica .musica-coleccion>audio{display:block;width:100%!important;max-width:none!important;background:#fffdf7;border:1px solid #e3d7b8;border-top:0;border-radius:0 0 18px 18px;padding:10px 18px 19px;margin:0 0 18px}
+#musica .musica-cancion{position:relative;background:#fff;border:1px solid #dce7df;border-radius:18px;padding:22px 23px;margin:0 0 15px;box-shadow:0 4px 14px rgba(20,60,44,.05);transition:box-shadow .2s ease,border-color .2s ease,transform .2s ease}
+#musica .musica-cancion:hover{border-color:#c9b17a;box-shadow:0 9px 23px rgba(20,60,44,.11);transform:translateY(-2px)}
+#musica .musica-cancion:last-child{margin-bottom:0}
+#musica .musica-cancion h3{display:flex;align-items:center;gap:8px;color:#163d33;font-size:1.14rem;line-height:1.45;margin:0 0 16px;font-weight:750}
+#musica .musica-cancion audio{display:block;width:100%!important;max-width:none!important;margin:0 0 12px;border-radius:30px}
+#musica .musica-acciones{display:flex;align-items:center;flex-wrap:wrap;gap:9px;margin-top:12px;padding-top:11px;border-top:1px solid #edf1ec}
+#musica .musica-acciones button,#musica .luz-interaccion-musica button{margin:0!important;border-radius:11px;min-height:38px}
+#musica .musica-acciones .danger{background:#a43b3b;color:white}
+#musica .musica-acciones .secondary{background:#edf4ed;color:#174d3e}
+#musica .musica-destacada{border-color:#d6b97a;background:linear-gradient(145deg,#fffdf4,#fff)}
+#musica .musica-destacada::before{content:'CANCIÓN DESTACADA';display:block;color:#977127;letter-spacing:.09em;font-size:.7rem;font-weight:800;margin-bottom:10px}
+#adminMusica>.card{border:1px solid #d8e4dc;border-top:4px solid #c8a35c;border-radius:18px;padding:clamp(18px,3vw,28px);box-shadow:0 5px 19px rgba(20,60,44,.06)}
+#adminMusica>h2{color:#173f34;font-family:Georgia,'Times New Roman',serif}
+#adminMusica #botonSubirCancion{background:linear-gradient(135deg,#176d58,#10503f);padding:13px 21px}
+@media(max-width:600px){#musica .musica-cabecera{padding:25px 20px;border-radius:18px}#musica .musica-cabecera::after{font-size:145px;bottom:-35px;right:5px}#musica .musica-coleccion{padding:13px;border-radius:18px}#musica .musica-cancion{padding:17px 15px}#musica .musica-coleccion>h3:not(:first-child){padding:18px 15px 0}#musica .musica-coleccion>audio{padding:10px 9px 16px}}
 
 /* Galería de reflexiones en TikTok */
 #reflexiones .reflexiones-hero{background:linear-gradient(130deg,#153e33,#226a53);color:white;padding:25px;border-radius:20px;margin-bottom:20px}
