@@ -446,7 +446,16 @@ async function cargarCanciones() {
        const gusto = bloque.querySelector('button[aria-label^="Me gusta:"]');
        if (gusto) acciones.append(gusto);
        acciones.append(boton);
-       bloque.append(nombre,audio,estado,acciones);
+       if (admin && session?.access_token) {
+         const eliminar = text('button', 'Eliminar canción');
+         eliminar.type = 'button';
+         eliminar.className = 'danger';
+         eliminar.style.cssText = 'margin:4px 0 0 8px;padding:6px 10px';
+         eliminar.setAttribute('aria-label', 'Eliminar ' + titulo);
+         eliminar.onclick = () => eliminarCancion(archivo.name, titulo, eliminar);
+         acciones.append(eliminar);
+       }
+        bloque.append(nombre,audio,estado,acciones);
       contenedor.append(bloque);
     }
     activarReproduccionContinua();
@@ -474,15 +483,47 @@ async function cargarCanciones() {
       if (lote.length < pagina) break;
     }
     if (generacion !== generacionMusica) return;
-    if (todos.length) {
-      try {localStorage.setItem(CLAVE_CANCIONES,JSON.stringify(todos));}catch(_){}
-      await mostrar(todos);
-    } else if (!guardadas.length) await mostrar([]);
+    try {localStorage.setItem(CLAVE_CANCIONES,JSON.stringify(todos));}catch(_){}
+    await mostrar(todos);
   } catch(error) {
     console.warn('No se pudo actualizar el catálogo de música:',error);
     if (!guardadas.length) contenedor.replaceChildren(text('p','No se pudo cargar el catálogo. Abre Música con conexión a internet.'));
   }
 }
+async function eliminarCancion(ruta, titulo, boton) {
+  if (!admin || !session?.access_token) return alert('Inicia sesión como administrador.');
+  if (!confirm('¿Eliminar definitivamente la canción «' + titulo + '»? Esta acción no se puede deshacer.')) return;
+  boton.disabled = true;
+  const textoAnterior = boton.textContent;
+  boton.textContent = 'Eliminando...';
+  try {
+    const respuesta = await fetch(cfg.url + '/storage/v1/object/' + BUCKET_MUSICA + '/' + ruta.split('/').map(encodeURIComponent).join('/'), {
+      method: 'DELETE',
+      headers: {apikey: cfg.publishableKey, Authorization: 'Bearer ' + session.access_token}
+    });
+    if (!respuesta.ok) {
+      const detalle = await respuesta.text();
+      throw Error('Supabase rechazó la eliminación (HTTP ' + respuesta.status + '): ' + detalle.slice(0, 250));
+    }
+    // Retirar también las copias locales para evitar que reaparezca sin conexión.
+    for (const clave of [CLAVE_CANCIONES, 'luz-alma-canciones-v1']) {
+      try {
+        const datos = JSON.parse(localStorage.getItem(clave) || '[]');
+        if (Array.isArray(datos)) localStorage.setItem(clave, JSON.stringify(datos.filter(a => a?.name !== ruta)));
+      } catch (_) {}
+    }
+    if ('caches' in window) {
+      try { const cache = await caches.open(CACHE_AUDIOS); await cache.delete(urlCancion(ruta)); } catch (_) {}
+    }
+    await cargarCanciones();
+    alert('Canción eliminada correctamente.');
+  } catch (error) {
+    boton.disabled = false;
+    boton.textContent = textoAnterior;
+    alert('No se pudo eliminar la canción: ' + error.message + '. Verifica que Supabase permita borrar archivos al administrador.');
+  }
+}
+
 async function subirCancion() {
   if (!admin || !session?.access_token) return alert('Inicia sesión como administrador.');
   const titulo = $('tituloCancion')?.value.trim();
