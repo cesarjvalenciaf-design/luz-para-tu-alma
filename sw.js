@@ -1,32 +1,84 @@
-const CACHE='luz-alma-v4';
-const ASSETS=['./','./index.html','./app.js','./config.js','./manifest.webmanifest','./icon.svg'];
-self.addEventListener('install',event=>{
-  event.waitUntil(caches.open(CACHE).then(async cache=>{
-    await Promise.allSettled(ASSETS.map(url=>cache.add(new Request(url,{cache:'reload'}))));
-  }).then(()=>self.skipWaiting()));
+
+const CACHE = 'luz-alma-v5';
+
+const ASSETS = [
+  './',
+  './index.html',
+  './app.js',
+  './config.js',
+  './manifest.webmanifest',
+  './icon.svg',
+  './icon-192.png',
+  './icon-512.png'
+];
+
+self.addEventListener('install', event => {
+  event.waitUntil(
+    (async () => {
+      const cache = await caches.open(CACHE);
+
+      await cache.addAll(ASSETS);
+
+      await self.skipWaiting();
+    })()
+  );
 });
-self.addEventListener('activate',event=>{
-  event.waitUntil(caches.keys().then(keys=>Promise.all(
-    keys.filter(key=>key.startsWith('luz-alma-v')&&key!==CACHE).map(key=>caches.delete(key))
-  )).then(()=>self.clients.claim()));
+
+self.addEventListener('activate', event => {
+  event.waitUntil(
+    (async () => {
+      const keys = await caches.keys();
+
+      await Promise.all(
+        keys
+          .filter(key =>
+            key.startsWith('luz-alma-v') &&
+            key !== CACHE
+          )
+          .map(key => caches.delete(key))
+      );
+
+      await self.clients.claim();
+    })()
+  );
 });
-self.addEventListener('fetch',event=>{
-  const req=event.request;
-  if(req.method!=='GET'||new URL(req.url).origin!==self.location.origin)return;
-  event.respondWith((async()=>{
-    const cache=await caches.open(CACHE);
-    try {
-      const response=await fetch(req);
-      if(response.ok)cache.put(req,response.clone()).catch(()=>{});
-      return response;
-    } catch(error) {
-      const saved=await caches.match(req,{ignoreSearch:true});
-      if(saved)return saved;
-      if(req.mode==='navigate'){
-        const page=await cache.match('./index.html');
-        if(page)return page;
+
+self.addEventListener('fetch', event => {
+  const request = event.request;
+
+  if (
+    request.method !== 'GET' ||
+    new URL(request.url).origin !== self.location.origin
+  ) {
+    return;
+  }
+
+  event.respondWith(
+    (async () => {
+      const cache = await caches.open(CACHE);
+
+      try {
+        const response = await fetch(request);
+
+        if (response.ok) {
+          cache.put(request, response.clone()).catch(() => {});
+        }
+
+        return response;
+      } catch (error) {
+        const saved = await caches.match(request, {
+          ignoreSearch: true
+        });
+
+        if (saved) return saved;
+
+        if (request.mode === 'navigate') {
+          const page = await cache.match('./index.html');
+          if (page) return page;
+        }
+
+        throw error;
       }
-      throw error;
-    }
-  })());
+    })()
+  );
 });
