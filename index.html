@@ -230,6 +230,24 @@ nav button:active {
 #adminMusica #botonSubirCancion{background:linear-gradient(135deg,#176d58,#10503f);padding:13px 21px}
 @media(max-width:600px){#musica .musica-cabecera{padding:25px 20px;border-radius:18px}#musica .musica-cabecera::after{font-size:145px;bottom:-35px;right:5px}#musica .musica-coleccion{padding:13px;border-radius:18px}#musica .musica-cancion{padding:17px 15px}#musica .musica-coleccion>h3:not(:first-child){padding:18px 15px 0}#musica .musica-coleccion>audio{padding:10px 9px 16px}}
 
+
+/* Reproductor único y catálogo compacto */
+#musica .musica-reproductor-central{background:linear-gradient(135deg,#123a30,#20644f);color:#fff;border:1px solid #d5b577;border-radius:20px;padding:clamp(18px,3vw,28px);margin:0 0 22px;box-shadow:0 12px 26px #173a3220}
+#musica .musica-reproductor-central .etiqueta{color:#f3d49b;font-size:.73rem;font-weight:800;letter-spacing:.13em}
+#musica .musica-reproductor-central h3{color:white;font-family:Georgia,serif;font-size:clamp(1.3rem,3vw,1.8rem);margin:10px 0 16px}
+#musica .musica-reproductor-central audio{width:100%;display:block}
+#musica .musica-reproductor-central .musica-navegacion{display:flex;gap:9px;margin-top:14px;flex-wrap:wrap}
+#musica .musica-reproductor-central button{background:#e7d3a4;color:#173a32;padding:9px 15px}
+#musica .musica-cancion{display:flex;align-items:center;gap:12px;padding:12px 15px;margin-bottom:8px;border-radius:13px;transform:none!important}
+#musica .musica-cancion h3{flex:1;min-width:0;margin:0;font-size:.98rem;overflow-wrap:anywhere}
+#musica .musica-cancion .musica-seleccionar{background:#eaf2ec;color:#174b3b;padding:9px 12px;flex-shrink:0}
+#musica .musica-cancion.musica-activa{background:#eff7ee;border-color:#c2a467}
+#musica .musica-cancion .musica-acciones{margin:0;padding:0;border:0;gap:6px}
+#musica .musica-cancion .musica-acciones button,#musica .musica-cancion .luz-interaccion-musica button{font-size:.8rem!important;min-height:34px;padding:7px 9px!important;margin:0!important}
+#musica .musica-cancion audio{display:none!important}
+#musica .musica-cancion .musica-estado{width:100%;font-size:.8rem}
+@media(max-width:600px){#musica .musica-cancion{flex-wrap:wrap}#musica .musica-cancion h3{flex-basis:calc(100% - 65px)}#musica .musica-cancion .musica-acciones{width:100%;padding-left:0}}
+
 /* Galería de reflexiones en TikTok */
 #reflexiones .reflexiones-hero{background:linear-gradient(130deg,#153e33,#226a53);color:white;padding:25px;border-radius:20px;margin-bottom:20px}
 #reflexiones .reflexiones-hero h2{color:#f3d79b;margin:0 0 8px}
@@ -284,6 +302,12 @@ nav button:active {
   </div>
   <div class="musica-coleccion">
     <h3>🎶 Nuestras canciones</h3>
+    <div class="musica-reproductor-central" id="reproductorCentralMusica">
+      <span class="etiqueta">♫ AHORA ESCUCHAS</span>
+      <h3 id="tituloReproductorMusica">Selecciona una canción</h3>
+      <audio id="audioCentralMusica" controls preload="none" aria-label="Reproductor de Música para el Alma"></audio>
+      <div class="musica-navegacion"><button type="button" id="musicaAnterior">⏮ Anterior</button><button type="button" id="musicaSiguiente">Siguiente ⏭</button></div>
+    </div>
     <h3>🎵 Gracias Dios</h3>
     <audio controls preload="none" style="width:100%;max-width:600px;">
       <source src="https://zfpjfpptghkyxpubhjji.supabase.co/storage/v1/object/public/musica/Gracias%20Dios.mp3" type="audio/mpeg">

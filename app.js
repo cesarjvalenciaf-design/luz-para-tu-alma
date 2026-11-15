@@ -3692,3 +3692,79 @@ async function cargarAdminReflexiones(){
   for(const r of rows){const d=document.createElement('div');d.className='reflexion-admin-item';d.append(text('strong',r.titulo+' '));const b=text('button','Eliminar');b.className='secondary';b.type='button';b.onclick=()=>eliminarReflexion(r.id);d.append(b);panel.append(d);}
  }catch(e){panel.replaceChildren(text('p','Para publicar nuevas reflexiones, primero ejecuta el SQL incluido.'));}
 }
+
+
+// Lista compacta con reproductor único. Los controles de descarga, gusto y borrado
+// mantienen sus eventos originales; los audios de cada fila son fuentes ocultas.
+let indiceMusicaCentral = -1;
+let cancionesMusicaCentral = [];
+function prepararListaMusicaCompacta() {
+  const principal = document.getElementById('audioCentralMusica');
+  const tituloCentral = document.getElementById('tituloReproductorMusica');
+  if (!principal || !tituloCentral) return;
+  const filas = Array.from(document.querySelectorAll('#musica .musica-cancion'));
+  cancionesMusicaCentral = filas.map((fila) => {
+    const audio = fila.querySelector('audio:not(#audioCentralMusica)');
+    const titulo = fila.querySelector('h3');
+    if (!audio || !titulo) return null;
+    const nombre = titulo.textContent.replace(/^🎵\s*/, '').trim();
+    let boton = fila.querySelector('.musica-seleccionar');
+    if (!boton) {
+      boton = document.createElement('button');
+      boton.type = 'button';
+      boton.className = 'musica-seleccionar';
+      fila.insertBefore(boton, titulo);
+    }
+    boton.textContent = '▶';
+    boton.setAttribute('aria-label', 'Reproducir ' + nombre);
+    // La canción destacada tiene sus acciones en un contenedor separado.
+    const acciones = fila.querySelector('.luz-interaccion-musica');
+    if (acciones) acciones.classList.add('musica-acciones');
+    return {fila, audio, titulo:nombre, boton};
+  }).filter(Boolean);
+  cancionesMusicaCentral.forEach((c, i) => { c.boton.onclick = () => seleccionarMusicaCentral(i, true); });
+  if (indiceMusicaCentral >= cancionesMusicaCentral.length) indiceMusicaCentral = -1;
+  if (indiceMusicaCentral === -1 && cancionesMusicaCentral.length) seleccionarMusicaCentral(0, false);
+  else if (indiceMusicaCentral >= 0) {
+    const actual = cancionesMusicaCentral[indiceMusicaCentral];
+    tituloCentral.textContent = actual.titulo;
+    cancionesMusicaCentral.forEach((c,i) => c.fila.classList.toggle('musica-activa', i === indiceMusicaCentral));
+  }
+  const anterior = document.getElementById('musicaAnterior');
+  const siguiente = document.getElementById('musicaSiguiente');
+  anterior.onclick = () => avanzarMusicaCentral(-1);
+  siguiente.onclick = () => avanzarMusicaCentral(1);
+  principal.onended = () => avanzarMusicaCentral(1);
+  principal.onplay = () => {
+    const actual = cancionesMusicaCentral[indiceMusicaCentral];
+    if (actual) registrarActividad('musica_play', null, actual.titulo);
+  };
+}
+function seleccionarMusicaCentral(indice, reproducir) {
+  const central = document.getElementById('audioCentralMusica');
+  const titulo = document.getElementById('tituloReproductorMusica');
+  const cancion = cancionesMusicaCentral[indice];
+  if (!central || !cancion) return;
+  indiceMusicaCentral = indice;
+  central.pause();
+  // src recoge tanto el audio remoto como la copia descargada para escuchar offline.
+  central.src = cancion.audio.currentSrc || cancion.audio.src || cancion.audio.querySelector('source')?.src || '';
+  central.load();
+  titulo.textContent = cancion.titulo;
+  cancionesMusicaCentral.forEach((c,i) => {
+    c.fila.classList.toggle('musica-activa', i === indice);
+    c.boton.textContent = i === indice ? '♫' : '▶';
+  });
+  if (reproducir) central.play().catch(() => {});
+}
+function avanzarMusicaCentral(paso) {
+  if (!cancionesMusicaCentral.length) return;
+  seleccionarMusicaCentral((indiceMusicaCentral + paso + cancionesMusicaCentral.length) % cancionesMusicaCentral.length, true);
+}
+// Sin alterar las funciones de Supabase ni las acciones de cada canción.
+const cargarCancionesAntesDeCompactar = cargarCanciones;
+cargarCanciones = async function() {
+  await cargarCancionesAntesDeCompactar();
+  prepararListaMusicaCompacta();
+};
+document.addEventListener('DOMContentLoaded', prepararListaMusicaCompacta);
