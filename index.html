@@ -248,6 +248,12 @@ nav button:active {
 #musica .musica-cancion .musica-estado{width:100%;font-size:.8rem}
 @media(max-width:600px){#musica .musica-cancion{flex-wrap:wrap}#musica .musica-cancion h3{flex-basis:calc(100% - 65px)}#musica .musica-cancion .musica-acciones{width:100%;padding-left:0}}
 
+/* Corrección: controles permanentes y textos visibles en el reproductor */
+#musica .musica-reproductor-central #tituloReproductorMusica{display:block!important;background:transparent!important;color:#fff!important;border:0!important;padding:0!important;margin:12px 0!important;overflow-wrap:anywhere}
+#musica #musicaPausaCentral{display:inline-flex;align-items:center;justify-content:center;min-width:135px;margin:0 0 12px;background:#e7d3a4;color:#173a32;font-weight:800}
+#musica .musica-coleccion>h3:not(:first-child){color:#173a32!important;background:#fffdf7!important}
+#musica .musica-cancion.musica-activa .musica-seleccionar{background:#e7d3a4;color:#173a32}
+
 /* Galería de reflexiones en TikTok */
 #reflexiones .reflexiones-hero{background:linear-gradient(130deg,#153e33,#226a53);color:white;padding:25px;border-radius:20px;margin-bottom:20px}
 #reflexiones .reflexiones-hero h2{color:#f3d79b;margin:0 0 8px}
@@ -305,6 +311,7 @@ nav button:active {
     <div class="musica-reproductor-central" id="reproductorCentralMusica">
       <span class="etiqueta">♫ AHORA ESCUCHAS</span>
       <h3 id="tituloReproductorMusica">Selecciona una canción</h3>
+      <button type="button" id="musicaPausaCentral" aria-label="Reproducir o pausar canción">▶ Reproducir</button>
       <audio id="audioCentralMusica" controls preload="none" aria-label="Reproductor de Música para el Alma"></audio>
       <div class="musica-navegacion"><button type="button" id="musicaAnterior">⏮ Anterior</button><button type="button" id="musicaSiguiente">Siguiente ⏭</button></div>
     </div>

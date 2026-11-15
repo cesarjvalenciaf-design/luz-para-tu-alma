@@ -3702,6 +3702,17 @@ function prepararListaMusicaCompacta() {
   const principal = document.getElementById('audioCentralMusica');
   const tituloCentral = document.getElementById('tituloReproductorMusica');
   if (!principal || !tituloCentral) return;
+  const pausa = document.getElementById('musicaPausaCentral');
+  if (pausa) pausa.onclick = () => { if (principal.paused) principal.play().catch(() => {}); else principal.pause(); };
+  const actualizarControl = () => {
+    if (pausa) pausa.textContent = principal.paused ? '▶ Reproducir' : '⏸ Pausar';
+    cancionesMusicaCentral.forEach((c,i) => {
+      c.boton.textContent = i === indiceMusicaCentral ? (principal.paused ? '▶' : '⏸') : '▶';
+      c.boton.setAttribute('aria-label', (i === indiceMusicaCentral && !principal.paused ? 'Pausar ' : 'Reproducir ') + c.titulo);
+    });
+  };
+  principal.addEventListener('play', actualizarControl);
+  principal.addEventListener('pause', actualizarControl);
   const filas = Array.from(document.querySelectorAll('#musica .musica-cancion'));
   cancionesMusicaCentral = filas.map((fila) => {
     const audio = fila.querySelector('audio:not(#audioCentralMusica)');
@@ -3722,7 +3733,7 @@ function prepararListaMusicaCompacta() {
     if (acciones) acciones.classList.add('musica-acciones');
     return {fila, audio, titulo:nombre, boton};
   }).filter(Boolean);
-  cancionesMusicaCentral.forEach((c, i) => { c.boton.onclick = () => seleccionarMusicaCentral(i, true); });
+  cancionesMusicaCentral.forEach((c, i) => { c.boton.onclick = () => { if (i === indiceMusicaCentral) { if (principal.paused) principal.play().catch(() => {}); else principal.pause(); } else seleccionarMusicaCentral(i, true); }; });
   if (indiceMusicaCentral >= cancionesMusicaCentral.length) indiceMusicaCentral = -1;
   if (indiceMusicaCentral === -1 && cancionesMusicaCentral.length) seleccionarMusicaCentral(0, false);
   else if (indiceMusicaCentral >= 0) {
@@ -3755,7 +3766,9 @@ function seleccionarMusicaCentral(indice, reproducir) {
     c.fila.classList.toggle('musica-activa', i === indice);
     c.boton.textContent = i === indice ? '♫' : '▶';
   });
-  if (reproducir) central.play().catch(() => {});
+  const pausa = document.getElementById('musicaPausaCentral');
+  if (pausa) pausa.textContent = reproducir ? '⏸ Pausar' : '▶ Reproducir';
+  if (reproducir) central.play().catch(() => { if (pausa) pausa.textContent = '▶ Reproducir'; });
 }
 function avanzarMusicaCentral(paso) {
   if (!cancionesMusicaCentral.length) return;
