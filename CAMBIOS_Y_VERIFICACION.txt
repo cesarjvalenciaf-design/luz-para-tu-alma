@@ -1,0 +1,25 @@
+LUZ PARA TU ALMA - ACTUALIZACION CONSERVADORA DE CONSUMO
+
+CAMBIOS EFECTUADOS
+1. Música: los reproductores de cada canción usan preload=none.
+2. Meditaciones: los reproductores usan preload=none.
+   Esto evita solicitar automáticamente metadatos de todos los MP3 al abrir una sección.
+3. Eliminada la segunda copia anidada del proyecto dentro del ZIP.
+4. Se conservan los formularios de subida, URLs, Supabase, las políticas RLS, el reproductor central y el resto de funciones.
+
+LIMITES IMPORTANTES
+- Esto reduce solicitudes automáticas de audio, pero NO garantiza bajar el tráfico por debajo de 5 GB.
+- Los MP3 siguen alojados en Supabase. No se han migrado.
+- La causa exacta de los 7.08 GB no está confirmada por archivo.
+- NO borrar políticas de Storage ni archivos para intentar corregir consumo histórico.
+- La cuota es por ciclo de facturación y puede requerir reducir reproducciones, optimizar compresión o elegir un proveedor de audio/CDN apropiado.
+
+PUBLICACION SEGURA
+1. Guardar una copia de la web actual (descargar ZIP del repositorio).
+2. Publicar PRIMERO en el repositorio de prueba. Subir los archivos y carpeta audios de ESTE ZIP, no la carpeta contenedora.
+3. Probar escuchar/leer meditaciones, música, subir canción, subir meditación, compartir, escuela bíblica y administración.
+4. Si todo funciona, replicar a la web oficial.
+5. Revisar Supabase > Usage > Cached Egress durante los próximos días.
+6. Para migrar audio sin perder el formulario automático, se necesita un proveedor de almacenamiento y un mecanismo de subida segura; no es seguro poner claves secretas en JavaScript público.
+
+ATENCION: el banner de Supabase señala posible restricción desde el 15 de diciembre de 2026. Esta actualización por sí sola no elimina esa advertencia.

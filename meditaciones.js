@@ -89,7 +89,7 @@ function abrirMeditacion(m){
   contenido.replaceChildren();
   if(tipo==='audio'){
    if(!m.archivo){contenido.textContent='Este audio todavía no está disponible.';return;}
-   const a=document.createElement('audio');a.controls=true;a.preload='metadata';a.className='med-audio';a.src=m.archivo;
+   const a=document.createElement('audio');a.controls=true;a.preload='none';a.className='med-audio';a.src=m.archivo;
    const p=document.createElement('p');p.textContent='Narración musicalizada';
    const velocidad=document.createElement('select');velocidad.setAttribute('aria-label','Velocidad de reproducción');
    for(const n of [0.75,1,1.25,1.5,2]){const opt=document.createElement('option');opt.value=String(n);opt.textContent=n+'×';if(n===1)opt.selected=true;velocidad.append(opt)}

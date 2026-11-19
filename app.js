@@ -411,7 +411,7 @@ async function cargarCanciones() {
       const nombre = text('h3','🎵 ' + titulo);
       const audio = document.createElement('audio');
       audio.controls = true;
-      audio.preload = 'metadata';
+      audio.preload = 'none'; // No descargar metadatos de todos los MP3 al abrir Música.
       audio.style.cssText = 'width:100%;max-width:600px';
       const url = urlCancion(archivo.name);
       const estado = text('small','');
