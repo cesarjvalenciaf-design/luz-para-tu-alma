@@ -1,0 +1,28 @@
+LUZ PARA TU ALMA — PAQUETE UNIFICADO DE PRUEBA
+
+Incluye los archivos completos de la aplicación anterior y una capa adicional de mejoras:
+- Botones de compartir y favoritos en Biblioteca (sermones, estudios y otros textos), Música y Reflexiones.
+- Acceso directo a publicaciones de Biblioteca mediante parámetros de URL.
+- Enlace a canción en Música (busca y desplaza al elemento; no garantiza reproducción automática).
+- Control de velocidad de audios en Música.
+- Favoritos guardados solo en este navegador y dispositivo.
+- Mantiene las mejoras previas de Meditaciones.
+- Caché del service worker actualizado.
+
+IMPORTANTE: No es correcto afirmar que las nueve áreas del plan maestro estén terminadas.
+NO INCLUIDO / REQUIERE REVISIÓN ADICIONAL:
+1. Auditoría real de permisos RLS, autenticación y backups de Supabase (requiere acceso al proyecto).
+2. Validación completa de las 20 lecciones y del progreso con estudiantes reales.
+3. Edición universal de todas las publicaciones y reemplazo de todos los archivos.
+4. Pruebas en distintos celulares y condiciones sin conexión.
+5. Meditación destacada automática y notificaciones push.
+6. Respuestas privadas de acompañamiento y políticas de privacidad.
+7. Configuración de medios de donación y verificación de seguridad.
+8. Tarjetas Open Graph INDIVIDUALES para cada publicación. GitHub Pages estático necesita generar páginas HTML por contenido, no basta JavaScript.
+9. Pruebas funcionales completas de todos los flujos.
+
+PASOS:
+1. Mantén intacta la web oficial.
+2. Sube los archivos descomprimidos (NO el ZIP) a la raíz del repositorio de prueba.
+3. Comprueba la navegación, reproducción, enlaces, administración y permisos.
+4. No uses datos reales de estudiantes en pruebas sin verificar seguridad y privacidad.

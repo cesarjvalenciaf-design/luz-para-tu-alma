@@ -1,11 +1,12 @@
 
-const CACHE = 'luz-alma-v7';
+const CACHE = 'luz-alma-v8-integral';
 
 const ASSETS = [
   './',
   './index.html',
   './app.js',
   './meditaciones.js',
+  './mejoras-integrales.js',
   './config.js',
   './manifest.webmanifest',
   './icon.svg',
