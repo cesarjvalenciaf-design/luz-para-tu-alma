@@ -1,0 +1,25 @@
+LUZ PARA TU ALMA — ACTUALIZACIÓN DE PRUEBA (19 NOV 2026)
+
+CAMBIOS INCLUIDOS:
+- Búsqueda de meditaciones por título, referencia y texto.
+- Selector de velocidad del audio y mensaje si falla la carga.
+- Botones de compartir (nativo, WhatsApp, Facebook) con enlaces directos por meditación.
+- Apertura de la meditación enlazada desde la URL.
+- Formulario para reemplazar audios remotos de meditaciones ya publicadas (requiere permisos de Supabase).
+- Metadatos generales Open Graph para compartir la portada.
+- Versión de caché renovada.
+
+YA PRESENTE EN EL CÓDIGO ORIGINAL:
+- Lecciones 2 a 20 con lógica de navegación y progreso. Requieren prueba funcional y revisión editorial; no se han reescrito.
+- Administración, música, oración y panel de actividad.
+
+PENDIENTE DE VALIDAR / IMPLEMENTAR:
+- Tarjetas Open Graph específicas por meditación: GitHub Pages estático no genera metadatos por URL con parámetros. Requiere páginas HTML estáticas por contenido o un servicio de prerender/hosting compatible.
+- Auditoría de políticas RLS y almacenamiento de Supabase: no puede hacerse solo con el ZIP.
+- Validación funcional de todas las lecciones y cuestionarios.
+- Pruebas reales de reproducción, carga y sustitución de MP3 con cuenta administradora.
+- Respaldo de base de datos y almacenamiento.
+- Pruebas en teléfonos y navegadores reales.
+- Mejora integral de oración, apoyo al ministerio y panel administrativo.
+
+INSTALACIÓN: no sustituir producción. Subir el contenido de esta carpeta al repositorio de PRUEBA. Conservar copia de la versión anterior. Verificar en navegador y en consola antes de migrar.

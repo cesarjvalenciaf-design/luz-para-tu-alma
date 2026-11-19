@@ -48,8 +48,11 @@ function renderMeditaciones(){
  cont.replaceChildren();
  const audios=[...MEDITACIONES_AUDIOS,...medAudiosRemotos.filter(x=>!MEDITACIONES_AUDIOS.some(y=>medNormalizar(y.titulo)===medNormalizar(x.titulo)))].map(x=>({...x,post:medBuscarPublicacion(x.titulo)}));
  const otros=(typeof items!=='undefined'?items:[]).filter(x=>categoriaFiltro(x.category)==='meditaciones'&&!audios.some(a=>a.post?.id===x.id||medNormalizar(a.titulo)===medNormalizar(x.title))).map(x=>({titulo:x.title,ref:x.ref,post:x}));
- const lista=[...audios,...otros];
- if(!lista.length){cont.textContent='Todavía no hay meditaciones publicadas.';return;}
+ const lista=[...audios,...otros].filter(x=>{
+   const q=medNormalizar(document.getElementById('medBuscar')?.value||'');
+   return !q||medNormalizar([x.titulo,x.ref,x.post?.body].join(' ')).includes(q);
+ });
+ if(!lista.length){cont.textContent='No hay meditaciones que coincidan con la búsqueda.';return;}
  for(const m of lista){
    const card=document.createElement('div');card.className='card';
    const subt=document.createElement('small');subt.textContent=(m.numero?'Meditación '+m.numero+' · ':'')+(m.ref||'');
@@ -88,8 +91,13 @@ function abrirMeditacion(m){
    if(!m.archivo){contenido.textContent='Este audio todavía no está disponible.';return;}
    const a=document.createElement('audio');a.controls=true;a.preload='metadata';a.className='med-audio';a.src=m.archivo;
    const p=document.createElement('p');p.textContent='Narración musicalizada';
+   const velocidad=document.createElement('select');velocidad.setAttribute('aria-label','Velocidad de reproducción');
+   for(const n of [0.75,1,1.25,1.5,2]){const opt=document.createElement('option');opt.value=String(n);opt.textContent=n+'×';if(n===1)opt.selected=true;velocidad.append(opt)}
+   velocidad.onchange=()=>a.playbackRate=Number(velocidad.value);
+   const aviso=document.createElement('p');aviso.className='med-audio-error';aviso.setAttribute('role','status');
+   a.onerror=()=>aviso.textContent='No se pudo cargar este audio. Comprueba la conexión o reemplaza el MP3 desde Administración.';
    const link=document.createElement('a');link.className='med-descarga';link.href=m.archivo;link.download='';link.textContent='⬇ Guardar MP3';
-   contenido.append(p,a,link);
+   contenido.append(p,a,velocidad,aviso,link);
   }else{
    const post=m.post||medBuscarPublicacion(m.titulo);
    if(!post?.body){contenido.textContent='El texto completo todavía no está publicado. Puedes incorporarlo desde Administración, en la categoría Meditación, usando este mismo título.';return;}
@@ -97,9 +105,43 @@ function abrirMeditacion(m){
   }
  }
  escuchar.onclick=()=>modo('audio');leer.onclick=()=>modo('texto');
- d.append(titulo,ref,tabs,contenido);modo(m.archivo?'audio':'texto');d.scrollIntoView({behavior:'smooth',block:'start'});
+ const compartir=document.createElement('div');compartir.className='med-compartir';
+ const enlace=new URL(window.location.href);enlace.searchParams.delete('admin');enlace.searchParams.set('meditacion',medNormalizar(m.titulo).replace(/ /g,'-'));enlace.hash='';
+ const botonCompartir=document.createElement('button');botonCompartir.type='button';botonCompartir.textContent='↗ Compartir';
+ botonCompartir.onclick=async()=>{try{if(navigator.share)await navigator.share({title:m.titulo,text:'Meditación de Luz para tu Alma',url:enlace.href});else{await navigator.clipboard.writeText(enlace.href);botonCompartir.textContent='✓ Enlace copiado'}}catch(e){if(e.name!=='AbortError')alert('No se pudo compartir el enlace.')}};
+ const wa=document.createElement('a');wa.href='https://wa.me/?text='+encodeURIComponent(m.titulo+' — '+enlace.href);wa.target='_blank';wa.rel='noopener noreferrer';wa.textContent='WhatsApp';
+ const fb=document.createElement('a');fb.href='https://www.facebook.com/sharer/sharer.php?u='+encodeURIComponent(enlace.href);fb.target='_blank';fb.rel='noopener noreferrer';fb.textContent='Facebook';
+ compartir.append(botonCompartir,wa,fb);
+ d.append(titulo,ref,compartir,tabs,contenido);modo(m.archivo?'audio':'texto');d.scrollIntoView({behavior:'smooth',block:'start'});
 }
 // Si la biblioteca termina de cargar después de abrir la sección, actualizar la lista.
 window.addEventListener('online',()=>{if(!document.getElementById('meditaciones')?.classList.contains('hide'))renderMeditaciones()});
 
 document.addEventListener('DOMContentLoaded',()=>{cargarAudiosMeditaciones();});
+
+// Abrir un contenido compartido, incluso si los datos de Supabase llegan después.
+let medEnlaceAbierto=false;
+function medAbrirEnlaceCompartido(){
+ if(medEnlaceAbierto)return;
+ const objetivo=new URLSearchParams(location.search).get('meditacion');if(!objetivo)return;
+ const lista=[...MEDITACIONES_AUDIOS,...medAudiosRemotos].map(x=>({...x,post:medBuscarPublicacion(x.titulo)}));
+ for(const x of (typeof items!=='undefined'?items:[]))if(categoriaFiltro(x.category)==='meditaciones'&&!lista.some(y=>medNormalizar(y.titulo)===medNormalizar(x.title)))lista.push({titulo:x.title,ref:x.ref,post:x});
+ const hallado=lista.find(x=>medNormalizar(x.titulo).replace(/ /g,'-')===objetivo);
+ if(hallado){medEnlaceAbierto=true;show('meditaciones');renderMeditaciones();abrirMeditacion(hallado)}
+}
+const medRenderOriginal=renderMeditaciones;
+renderMeditaciones=function(){medRenderOriginal();medAbrirEnlaceCompartido()};
+document.addEventListener('DOMContentLoaded',()=>setTimeout(medAbrirEnlaceCompartido,800));
+async function reemplazarAudioMeditacion(){
+ if(!admin||!session?.access_token)return alert('Inicia sesión como administrador.');
+ const titulo=document.getElementById('medReemplazoTitulo').value.trim();const archivo=document.getElementById('medReemplazoArchivo').files[0];
+ const estado=document.getElementById('medReemplazoEstado');const boton=document.getElementById('medReemplazar');
+ if(!titulo||!archivo)return alert('Escribe el título y selecciona un MP3.');
+ if(!/\.mp3$/i.test(archivo.name)||archivo.size>50*1024*1024)return alert('Selecciona un MP3 de máximo 50 MB.');
+ const nombre=medArchivoNombre(titulo);if(!medAudiosRemotos.some(x=>x.nombre===nombre))return alert('No se encontró un audio remoto con ese título. Esta opción solo reemplaza MP3 publicados desde el formulario.');
+ if(!confirm('¿Reemplazar el audio existente de «'+titulo+'»?'))return;
+ boton.disabled=true;estado.textContent='Actualizando audio...';
+ try{const res=await fetch(cfg.url+'/storage/v1/object/musica/'+encodeURIComponent(nombre),{method:'POST',headers:{apikey:cfg.publishableKey,Authorization:'Bearer '+session.access_token,'Content-Type':'audio/mpeg','x-upsert':'true','cache-control':'max-age=0'},body:archivo});if(!res.ok)throw Error('Error '+res.status+': '+(await res.text()).slice(0,180));
+ await cargarAudiosMeditaciones();estado.textContent='MP3 reemplazado. Puede tardar unos minutos en actualizarse en caché.';
+ }catch(e){estado.textContent='No se pudo reemplazar: '+e.message}finally{boton.disabled=false}
+}

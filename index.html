@@ -8,7 +8,15 @@
     <meta name="theme-color" content="#173a32">
     <link rel="manifest" href="manifest.webmanifest">
     <link rel="icon" href="icon.svg" type="image/svg+xml">
-    <title>Luz para tu Alma</title>
+    <title>Luz para tu Alma — Meditaciones, música y estudios bíblicos</title>
+    <meta name="description" content="Meditaciones para escuchar y leer, música cristiana, sermones y estudios bíblicos gratuitos.">
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="Luz para tu Alma">
+    <meta property="og:title" content="Luz para tu Alma — Fe y esperanza">
+    <meta property="og:description" content="Escucha meditaciones, disfruta música cristiana y estudia la Biblia.">
+    <meta property="og:image" content="https://cesarjvalenciaf-design.github.io/luz-para-tu-alma/icon-512.png">
+    <meta property="og:url" content="https://cesarjvalenciaf-design.github.io/luz-para-tu-alma/">
+    <meta name="twitter:card" content="summary_large_image">
     <style>
         :root {
             font-family: system-ui, Arial;
@@ -280,6 +288,10 @@ nav button:active {
             box-shadow: 0 4px 14px rgba(0,0,0,.22);
         }
         #accesoAdministracion:focus-visible { outline: 3px solid #d6b774; outline-offset: 3px; }
+#medBuscar{width:100%;max-width:650px;margin:14px 0 18px}
+.med-compartir{display:flex;flex-wrap:wrap;gap:9px;margin:15px 0}
+.med-compartir button,.med-compartir a{font:inherit;font-size:14px;padding:9px 12px;border-radius:9px}
+.med-audio-error{color:#a33131;font-weight:600}
 </style>
 </head>
 
@@ -523,6 +535,8 @@ nav button:active {
         </section>
         <section id="meditaciones" class="hide">
   <div class="med-hero"><h2>🌅 Meditaciones para tu Alma</h2><p>Escucha con calma o lee a tu propio ritmo.</p></div>
+  <label for="medBuscar">Buscar meditaciones</label>
+  <input id="medBuscar" type="search" placeholder="Buscar por título o texto bíblico" oninput="renderMeditaciones()" aria-label="Buscar meditaciones">
   <div id="meditacionesLista" class="med-lista"></div>
   <div id="meditacionDetalle" class="card hide" style="margin-top:18px"></div>
 </section>
@@ -720,6 +734,12 @@ nav button:active {
                 <label for="medArchivo">Audio MP3</label><input id="medArchivo" type="file" accept=".mp3,audio/mpeg">
                 <button type="button" id="medPublicar" onclick="publicarMeditacionNueva()">Publicar meditación</button>
                 <p id="medEstado" role="status"></p>
+                <hr><h3>Actualizar audio de una meditación existente</h3>
+                <p>Reemplaza el MP3 de una meditación ya publicada sin crear otra tarjeta. Se requiere acceso autorizado al almacenamiento.</p>
+                <label for="medReemplazoTitulo">Título exacto de la meditación</label><input id="medReemplazoTitulo" placeholder="Ejemplo: El cántaro agrietado">
+                <label for="medReemplazoArchivo">Nuevo MP3</label><input id="medReemplazoArchivo" type="file" accept=".mp3,audio/mpeg">
+                <button type="button" id="medReemplazar" onclick="reemplazarAudioMeditacion()">Reemplazar MP3</button>
+                <p id="medReemplazoEstado" role="status"></p>
               </div>
             </div>
             <div id="adminMusica" class="hide">

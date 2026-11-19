@@ -1,5 +1,5 @@
 
-const CACHE = 'luz-alma-v6';
+const CACHE = 'luz-alma-v7';
 
 const ASSETS = [
   './',
