@@ -508,7 +508,7 @@ nav button:active {
                 </div>
                 <div class="card">
                     <h3>🌅 Meditaciones</h3>
-                    <p>Reflexiones para cada día.</p><button onclick="filterType('Meditación')">Explorar</button>
+                    <p>Reflexiones para cada día.</p><button onclick="abrirMeditaciones()">Explorar</button>
                 </div>
                 <div class="card">
                     <h3>🔎 Exégesis</h3>
@@ -521,7 +521,12 @@ nav button:active {
             </div>
            
         </section>
-        <section id="biblioteca" class="hide">
+        <section id="meditaciones" class="hide">
+  <div class="med-hero"><h2>🌅 Meditaciones para tu Alma</h2><p>Escucha con calma o lee a tu propio ritmo.</p></div>
+  <div id="meditacionesLista" class="med-lista"></div>
+  <div id="meditacionDetalle" class="card hide" style="margin-top:18px"></div>
+</section>
+<section id="biblioteca" class="hide">
             <h2>Biblioteca bíblica</h2><input id="search" placeholder="Buscar por título, referencia o texto"
                 oninput="render()"><select id="typeFilter" onchange="render()">
                 <option value="">Todas las categorías</option>
@@ -705,6 +710,18 @@ nav button:active {
 <div id="adminTestimonios"></div>
 
             </div>
+            <div id="adminMeditaciones" class="hide">
+              <h2>🎧 Administrar meditaciones</h2>
+              <div class="card">
+                <p>Publica una meditación con audio MP3 y, si deseas, su texto. Se mostrará automáticamente en Meditaciones para tu Alma.</p>
+                <label for="medTitulo">Título de la meditación</label><input id="medTitulo" placeholder="Ejemplo: Dios escucha tu oración">
+                <label for="medReferencia">Referencia bíblica</label><input id="medReferencia" placeholder="Ejemplo: Jeremías 33:3">
+                <label for="medTexto">Texto completo (opcional)</label><textarea id="medTexto" placeholder="Pega aquí la meditación para que también se pueda leer"></textarea>
+                <label for="medArchivo">Audio MP3</label><input id="medArchivo" type="file" accept=".mp3,audio/mpeg">
+                <button type="button" id="medPublicar" onclick="publicarMeditacionNueva()">Publicar meditación</button>
+                <p id="medEstado" role="status"></p>
+              </div>
+            </div>
             <div id="adminMusica" class="hide">
             <h2>🎵 Administrar música</h2>
 <div class="card">
@@ -769,8 +786,21 @@ nav button:active {
       .luz-metrica strong {font-size:1.65rem;color:#174f3e}
       .luz-metrica span {font-size:.85rem;color:#394e43}
     </style>
+<style>
+.med-hero{background:linear-gradient(135deg,#173a32,#23644e);color:#fff;border:1px solid #d5b577;border-radius:20px;padding:24px;margin:12px 0 20px}
+.med-hero h2{color:#f2d18b;margin:0 0 8px}.med-hero p{margin:0;color:#fff}
+.med-lista{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,250px),1fr));gap:12px}
+.med-lista .card{cursor:default}.med-lista h3{margin:8px 0}.med-lista button{margin-top:10px}
+.med-opciones{display:flex;gap:8px;margin:14px 0}.med-opciones button{flex:1}.med-opciones button[aria-pressed="true"]{background:#173a32;color:white}
+.med-lectura{font-family:Georgia,serif;font-size:clamp(1.08rem,2vw,1.22rem);line-height:1.9;max-width:72ch;margin:20px auto 8px;overflow-wrap:break-word;color:#183a32}
+.med-lectura p{margin:0 0 1.35em;text-wrap:pretty}
+.med-lectura p:last-child{margin-bottom:0}
+@media(max-width:600px){.med-lectura{font-size:1.08rem;line-height:1.8;margin:16px 0}.med-lectura p{margin-bottom:1.15em}}
+.med-audio{width:100%;margin:14px 0}.med-descarga{display:inline-block;margin:8px 0;color:#176d58}
+</style>
     <script src="config.js"></script>
     <script src="app.js"></script>
+    <script src="meditaciones.js"></script>
     
 <script>
   if ('serviceWorker' in navigator) {

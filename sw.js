@@ -1,10 +1,11 @@
 
-const CACHE = 'luz-alma-v5';
+const CACHE = 'luz-alma-v6';
 
 const ASSETS = [
   './',
   './index.html',
   './app.js',
+  './meditaciones.js',
   './config.js',
   './manifest.webmanifest',
   './icon.svg',
